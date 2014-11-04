@@ -19,62 +19,64 @@ simplification does make sense here:
 n!/((n/2)! * (n/2)!) = ( n*(n-1)*...*(n/2 + 1) ) / ( (n/2)! )
 
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+output format:
+
+
 the resulting file will have the following structure (without paranthesis and '|'):
 (patternID|length1|length2)|(patternID|length1|length2)|...
 
 where the number of bits for length(1/2) are either fix or contained in the file name or sth...
 according to the pattern length2 might be omitted.
 
+if we had 4 patterns and the sequence length were 16 (2 bytes) each block would be:
 
---------------
+sorted patterns:
+pp|xxxx|yyyy => 10 bits instead of 16 => 62.5%
+id|len1|len2
 
-next_permutation algorithm
+alternating patterns:
+pp|xxxx      => 6 bits instead of 16 => 37.5%
+id|offset
 
-this algorithm generates the next permutation THAT IS DIFFERENT ("11" has no different permutations).
+if we had 4 patterns and the sequence length were 24 (3 bytes) each block would be:
 
-example:
-3 chars, 2 equal
-001
-010
-100
-(2,3) - (1,2)
+sorted:
+pp|xxxxx|yyyyy => 12 => 50%
 
-4 chars, 2 equal
-0011
-0101
-0110
-1010
-1001
-1100
-(2,3) - (3,4) - (1,2) - (3,4) - (2,4)
-
-4 chars, 3 equal
-0001
-0010
-0100
-1000
+alternating:
+pp|xxxxx       => 7  => 29.1%
 
 
-to not generate an identical permutation make exchanges in some pattern but skip an exchange (transposition) if chars equal.
+if we had 4 patterns and the sequence length were 32 (4 bytes) each block would be:
+
+sorted:
+pp|xxxxx|yyyyy => 12 => 37.5%
+
+alternating:
+pp|xxxxx       => 7  => 21.875%
+
+if we had 4 patterns and the sequence length were 64 (8 bytes) each block would be:
+
+sorted:
+pp|xxxxx|yyyyy => 12 => 21.875%
+
+alternating:
+pp|xxxxx       => 7  => 12.5%
 
 
-try to begin from the front:
-001
-try (1,2) -> equal -> next
-try (1,3)
-100
-try(1,4) nope...indices
-try(2,1)
-010
+and so forth....this can go pretty low!!
 
 
-0011
-try (1,2) -> equal
-try (1,3)
-1001
-try (1,4) -> equal
-try (2,1)
-0101
-0110
-1010
-1100
+
+equation:
+
+sorted:
+(log2(num_patterns) + 2 * log(num_bits)) / num_bits
+
+alternating:
+(log2(num_patterns) + log(num_bits)) / num_bits

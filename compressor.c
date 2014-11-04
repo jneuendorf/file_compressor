@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "permutation.h"
 #include "compressor.h"
 
 
@@ -56,79 +57,120 @@ char* bits_to_string(void *p, unsigned int bytes) {
     return res;
 }
 
-bool pattern_is_sorted(struct sequence *seq) {
-    char *chr;
-    char expected_char;
-    char current_chr;
+// bool pattern_is_sorted(struct sequence *seq) {
+//     char *chr;
+//     char expected_char;
+//     char current_chr;
+//
+//     // printf("pattern_is_sorted\n");
+//
+//     // point to 1st char
+//     chr = seq->chars;
+//
+//     expected_char = '.'; // any
+//
+//     // iterate chars till zero byte
+//     while((current_chr = *chr) != 0) {
+//         // current_chr = *chr;
+//         // printf("%d %c\n", chr, current_chr);
+//         // expecting specific char
+//         if(expected_char == '0' || expected_char == '1') {
+//             if(current_chr != expected_char) {
+//                 return false;
+//             }
+//             // else: do nothing...everything is ok
+//         }
+//         // 0 or 1 may be next
+//         else {
+//             if(current_chr == '1') {
+//                 expected_char = '1';
+//             }
+//             // else: expect any => dont change expected_char's value
+//         }
+//         // go to next char
+//         chr++;
+//     }
+//
+//     return true;
+// }
 
-    // printf("pattern_is_sorted\n");
 
-    // point to 1st char
-    chr = seq->chars;
+// bool pattern_is_sorted_inverse(struct sequence *seq) {
+//     char *chr;
+//     char expected_char;
+//     char current_chr;
+//
+//     // printf("pattern_is_sorted_inverse\n");
+//
+//     // point to 1st char
+//     chr = seq->chars;
+//
+//     expected_char = '.'; // any
+//
+//     // iterate chars till zero byte
+//     while((current_chr = *chr) != 0) {
+//         // current_chr = *chr;
+//         // printf("%d %c\n", chr, current_chr);
+//         // expecting specific char
+//         if(expected_char == '0' || expected_char == '1') {
+//             if(current_chr != expected_char) {
+//                 return false;
+//             }
+//             // else: do nothing...everything is ok
+//         }
+//         // 0 or 1 may be next
+//         else {
+//             if(current_chr == '0') {
+//                 expected_char = '0';
+//             }
+//             // else: expect any => dont change expected_char's value
+//         }
+//         // go to next char
+//         chr++;
+//     }
+//
+//     return true;
+// }
 
-    expected_char = '.'; // any
 
-    // iterate chars till zero byte
-    while((current_chr = *chr) != 0) {
-        // current_chr = *chr;
-        // printf("%d %c\n", chr, current_chr);
-        // expecting specific char
-        if(expected_char == '0' || expected_char == '1') {
-            if(current_chr != expected_char) {
-                return false;
-            }
-            // else: do nothing...everything is ok
-        }
-        // 0 or 1 may be next
-        else {
-            if(current_chr == '1') {
-                expected_char = '1';
-            }
-            // else: expect any => dont change expected_char's value
-        }
-        // go to next char
-        chr++;
+bool pattern_is_sorted(number num) {
+    // 1, 3, 7, 15, ... = 2^n-1
+    // regex: 0*1*
+
+    // while last bit is a 1 => shift right
+    while((num & 1) == 1) {
+        num = num >> 1;
     }
 
-    return true;
+    // if no 1s are left it's 0!
+    return num == 0;
 }
 
-bool pattern_is_sorted_inverse(struct sequence *seq) {
-    char *chr;
-    char expected_char;
-    char current_chr;
+bool pattern_is_sorted_inverse(number num) {
+    // regex 1*0*
 
-    // printf("pattern_is_sorted_inverse\n");
+    printf("> %d\n", num);
 
-    // point to 1st char
-    chr = seq->chars;
-
-    expected_char = '.'; // any
-
-    // iterate chars till zero byte
-    while((current_chr = *chr) != 0) {
-        // current_chr = *chr;
-        // printf("%d %c\n", chr, current_chr);
-        // expecting specific char
-        if(expected_char == '0' || expected_char == '1') {
-            if(current_chr != expected_char) {
-                return false;
-            }
-            // else: do nothing...everything is ok
-        }
-        // 0 or 1 may be next
-        else {
-            if(current_chr == '0') {
-                expected_char = '0';
-            }
-            // else: expect any => dont change expected_char's value
-        }
-        // go to next char
-        chr++;
+    // while last bit is a 0 => shift right
+    while((num & 1) == 0) {
+        num = num >> 1;
+        printf(">> %d\n", num);
     }
 
-    return true;
+    //////////////////////////////
+    // same as sorted!!! (TODO?)
+
+    printf("> %d\n", num);
+
+    // while last bit is a 1 => shift right
+    while((num & 1) == 1) {
+        num = num >> 1;
+    }
+
+    // if no 1s are left it's 0!
+    return num == 0;
 }
+
 
 void define_patterns() {
     struct pattern sorted = {.matches = &pattern_is_sorted};
@@ -138,6 +180,7 @@ void define_patterns() {
     num_patterns = 2;
     patterns = calloc(num_patterns, sizeof(struct pattern));
 
+    // assign patterns
     patterns[0] = sorted;
     patterns[1] = sorted_inverse;
 }
@@ -146,7 +189,9 @@ void compress() {
 
 }
 
-void compress_
+void compress_blockwise() {
+
+}
 
 // int is_sorted(struct sequence *seq) {
 //     return seq->length;

@@ -34,7 +34,7 @@ run: compressor
 	./$(EXE_NAME)
 
 test: compressor
-	./$(EXE_NAME) tobecompressed.txt
+	./$(EXE_NAME) tobecompressed.txt compressed.c13
 
 test_debug:$(OBJS)
 	$(CC) $(LFLAGS) $(OBJS) -g -o $(EXE_NAME)

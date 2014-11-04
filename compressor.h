@@ -3,13 +3,17 @@
 
 #include "global.h"
 
-struct sequence {
-    char* chars;
-    unsigned int length;
-    unsigned char pattern_id;
-    // int (*pattern)(int,int);
-};
+// struct sequence {
+//     char* chars;
+//     unsigned int length;
+//     unsigned char pattern_id;
+//     // int (*pattern)(int,int);
+// };
 
+struct sequence {
+    number n;
+    byte pattern_id;
+};
 
 // PATTERNS
 struct pattern {
@@ -24,8 +28,8 @@ void define_patterns();
 unsigned int number_of_set_bits(int i);
 char* bits_to_string(void *p, unsigned int relevant_bits);
 
-bool pattern_is_sorted(struct sequence *seq);
-bool pattern_is_sorted_inverse(struct sequence *seq);
+bool pattern_is_sorted(number num);
+bool pattern_is_sorted_inverse(number num);
 
 
 #endif

@@ -4,5 +4,6 @@
 #include <stdbool.h>
 
 typedef unsigned char byte;
+typedef unsigned long long number;
 
 #endif

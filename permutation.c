@@ -10,46 +10,46 @@
  * returning a Boolean to indicate whether a next permutation existed.
  * (Returns false when the argument is already the last possible permutation.)
  */
-// int next_permutation(int *array, size_t length) {
-// 	size_t i;
-// 	size_t j;
-// 	int temp;
-//
-// 	if(length == 0) {
-// 		return 0;
-// 	}
-//
-// 	// Find non-increasing suffix
-// 	i = length - 1;
-// 	while(i > 0 && array[i - 1] >= array[i]) {
-// 		i--;
-// 	}
-//
-// 	if(i == 0) {
-// 		return 0;
-// 	}
-//
-// 	// Find successor to pivot
-// 	j = length - 1;
-// 	while(array[j] <= array[i - 1]) {
-// 		j--;
-// 	}
-//
-// 	temp = array[i - 1];
-// 	array[i - 1] = array[j];
-// 	array[j] = temp;
-//
-// 	// Reverse suffix
-// 	j = length - 1;
-// 	while(i < j) {
-// 		temp = array[i];
-// 		array[i] = array[j];
-// 		array[j] = temp;
-// 		i++;
-// 		j--;
-// 	}
-// 	return 1;
-// }
+int next_permutation(int *array, size_t length) {
+	size_t i;
+	size_t j;
+	int temp;
+
+	if(length == 0) {
+		return 0;
+	}
+
+	// Find non-increasing suffix
+	i = length - 1;
+	while(i > 0 && array[i - 1] >= array[i]) {
+		i--;
+	}
+
+	if(i == 0) {
+		return 0;
+	}
+
+	// Find successor to pivot
+	j = length - 1;
+	while(array[j] <= array[i - 1]) {
+		j--;
+	}
+
+	temp = array[i - 1];
+	array[i - 1] = array[j];
+	array[j] = temp;
+
+	// Reverse suffix
+	j = length - 1;
+	while(i < j) {
+		temp = array[i];
+		array[i] = array[j];
+		array[j] = temp;
+		i++;
+		j--;
+	}
+	return 1;
+}
 
 byte get_bit_at(number *n, size_t idx) {
 	return (*n & (1 << idx)) > 0;
@@ -196,35 +196,66 @@ int prev_permutation_bitwise(number *n, size_t length) {
 }
 
 
-// int main (int argc, char const *argv[]) {
-// 	int arr[] = {0, 1, 3, 5, 3, 3, 0};
-// 	// next_permutation = 0 1 5 0 3 3 3
-// 	// swap -> 015|3330 -> reverse -> 015|0333
-//
-//
-// 	// int arr[] = {0,0,1,1};
-// 	number n = 3;
-//
-// 	// next_permutation_bitwise(&n, 4);
-//
-// 	// printf("> %llu\n", n); // 9 yey!!
-//
-// 	while(next_permutation_bitwise(&n, 4)) {
-// 		printf("%llu\n", n);
-// 	}
-//
-// 	printf("-----\n");
-//
-// 	while(prev_permutation_bitwise(&n, 4)) {
-// 		printf("%llu\n", n);
-// 	}
-//
-// 	// while(next_permutation(arr, 7)) {
-// 	// 	for(size_t i = 0; i < 7; i++) {
-// 	// 		printf("%d ", arr[i]);
-// 	// 	}
-// 	// 	printf("\n");
-// 	// }
-//
-// 	return 0;
-// }
+int main (int argc, char const *argv[]) {
+	int arr[] = {0,0,0,0,0,0,1,1};
+	// next_permutation = 0 1 5 0 3 3 3
+	// swap -> 015|3330 -> reverse -> 015|0333
+
+
+	// int arr[] = {0,0,1,1};
+	// number n = 3;
+	//
+	// // next_permutation_bitwise(&n, 4);
+	//
+	// // printf("> %llu\n", n); // 9 yey!!
+	//
+	// while(next_permutation_bitwise(&n, 4)) {
+	// 	printf("%llu\n", n);
+	// }
+	//
+	// printf("-----\n");
+	//
+	// while(prev_permutation_bitwise(&n, 4)) {
+	// 	printf("%llu\n", n);
+	// }
+
+	while(next_permutation(arr, 8)) {
+		for(size_t i = 0; i < 8; i++) {
+			printf("%d ", arr[i]);
+		}
+		printf("\n");
+	}
+
+	return 0;
+}
+
+
+
+// 00000011
+// 00000101
+// 00000110
+// 00001001
+// 00001010
+// 00001100
+// 00010001
+// 00010010
+// 00010100
+// 00011000
+// 00100001
+// 00100010
+// 00100100
+// 00101000
+// 00110000
+// 01000001
+// 01000010
+// 01000100
+// 01001000
+// 01010000
+// 01100000
+// 10000001
+// 10000010
+// 10000100
+// 10001000
+// 10010000
+// 10100000
+// 11000000
