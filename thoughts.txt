@@ -72,6 +72,20 @@ pp|xxxxx       => 7  => 12.5%
 and so forth....this can go pretty low!!
 
 
+BUT: this assumes the number of ones equals the number of zeros!
+AND: the number of (permutation) steps has not been encoded yet...
+
+for alternating we could use the 1st index of the 1st '1'
+0000 0000 0010 1010 --> pp|xxxxx|
+
+
+n = 64
+f(n) = steps = n!/((n/2)! × (n/2)!)
+g(n) = ceil(log2(steps))
+
+g increases slower than 'id' => 32 saves 2 bits, 64 saves 3, 164 saves 4, 652 saves 5
+
+
 
 equation:
 
@@ -80,3 +94,10 @@ sorted:
 
 alternating:
 (log2(num_patterns) + log(num_bits)) / num_bits
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+WE NEED TO SAVE THE NUMBER OF MADE PERMUTATIONS!!!!!!!
+
+I guess my idea is very similar to: http://en.wikipedia.org/wiki/Burrows%E2%80%93Wheeler_transform

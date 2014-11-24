@@ -3,72 +3,47 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-
+//////////////////////////////////////////////////////////////////
 #include "global.h"
 #include "permutation.h"
 #include "compressor.h"
 
+//////////////////////////////////////////////////////////////////
+#ifndef BLOCK_SIZE
+#define BLOCK_SIZE 16
+#endif
+// TODO: make this dynamic!
+#ifndef MAX_NSB
+#define MAX_NSB (BLOCK_SIZE + 1)
+#endif
+
+
+//////////////////////////////////////////////////////////////////
 
 
 int main (int argc, char const *argv[]) {
-    FILE            *file;
-    char            *buffer;
-    unsigned char   i; // type must match type of struct sequence.pattern_id
-    struct sequence seq;
-    number          sequence_length;
-    bool            exit_loop;
-    number          *bits;
+    FILE                *file;
+    char                *buffer;
+    unsigned char       i; // type must match type of struct sequence.pattern_id
+    struct sequence     seq;
+    number              block_size;
+    number              nsb; // number of set bits
+    bool                exit_loop;
+    number              *bits;
+    // define indices of pattern (=number) of lexicographical order of all permutations
+    // FOR EACH number_of_set_bits! (n^2)
+    // number           indices[MAX_NSB][BLOCK_SIZE];
+    number              nsb_permutations[MAX_NSB][BLOCK_SIZE];
+    number              permutation;
+    number              perm_idx;
+    struct mapper_entry mapper[MAX_NSB];
+    struct nsb_data     nsb_datas[MAX_NSB];
 
 
-    // initialize patterns
-    define_patterns();
-
-
-    // number of bits to permute (default -> 2 bytes)
-    // steps in dependence of number of bits:
-    // 8 ->                       17.5
-    // 16 ->                    3217.5
-    // 24 ->                 676 039
-    // 32 ->             150 270 097
-    // 40 ->          34 461 632 205
-    // 48 ->       8 061 900 920 775.16
-    // 56 ->   1 912 172 650 190 140.2
-    // 64 -> 458 156 035 235 661 120
     // max. 64
-    // seq.length = 16;
-    sequence_length = 16;
-    // TODO: maybe:
-    // TODO: make this number bigger by having an array of longs and simulate a shift in the whole array!
+    block_size = 16;
 
-    buffer = calloc(sequence_length / 8 + 1, sizeof(char));
-
-
-    // char test[3] = "abc";
-    //
-    // permute(test, 3);
-    //
-    // printf("permute: %s\n", test);
-    //
-    // unpermute(test, 3);
-    //
-    // printf("unpermute: %s\n", test);
-
-
-    // testing sorted pattern
-    // struct sequence test_sequence = {.chars = "1111111111100000", .length = 16};
-    // printf("%s\n", "here we go");
-    // int temp = permute("0000111", 7);
-    // printf("%d\n", temp);
-
-    // temp = permute("1111111111100000", 16);
-    // printf("%d\n", temp);
-    // return 1;
-    // printf(">> sorted? %d - %d\n", pattern_is_sorted(&test_sequence), pattern_is_sorted_inverse(&test_sequence));
-
-
-    // char test2[] = "mynameisjim";
-    // printf("bits: %s\n", bits_to_string(test2, 11));
+    buffer = calloc(block_size / 8 + 1, sizeof(char));
 
 
     if(argc < 3) {
@@ -76,9 +51,6 @@ int main (int argc, char const *argv[]) {
         return 1;
     }
 
-    // printf("int size: %lu bytes\n", sizeof(char));
-
-    // printf("%d\n", argc);
 
     // try to open the file
     file = fopen(argv[1], "rb");
@@ -89,13 +61,28 @@ int main (int argc, char const *argv[]) {
 
     // TODO: get file size (for knowing remaining bits and progress)
 
+    // 0. fill memory with permutations for each nsb (TODO: this could be done dynamically so unneeded nsb's are not computed)
+    //    also initialize all the pointers of struct nsb_data
+    for(nsb = 0; nsb < MAX_NSB; ++nsb) {
+        // permutations
+        permutation = (1 << nsb) - 1; // 2^nsb - 1 = nsb many 1s (= the first permutation for that many set bits)
+        perm_idx = 0;
+        do {
+            nsb_permutations[nsb][perm_idx++] = permutation;
+            // ++perm_idx; // inlined above
+        } while(next_permutation_bitwise(&permutation, block_size));
+        // nsb_data pointers
+        init_nsb_data(&nsb_datas[nsb], block_size);
+    }
 
-    // Hier wird die LeseDatei solange durchlaufen bis das Dateiende erreicht (-> feof = end of file)
+
+    // 1. read entire file and gather data needed for compression
+    // read file til its end (-> feof = end of file)
     while(!feof(file))    {
         printf("beginning of read loop\n");
 
         // read next n bytes (+1 because '\0' is also appended)
-        fgets(buffer, sequence_length / 8 + 1, file);
+        fgets(buffer, block_size / 8 + 1, file);
 
         // set_bits = number_of_set_bits(buffer[0]);
 
@@ -107,49 +94,6 @@ int main (int argc, char const *argv[]) {
 
         // printf("%d\n", *bits);
 
-        while(next_permutation_bitwise(bits, strlen(buffer) * 8)) {
-            printf("%d\n", *bits);
-        }
-
-        printf("%d\n", pattern_is_sorted_inverse(*bits));
-
-        return 1;
-
-        exit_loop = false;
-
-        do {
-            // printf(">> %d\n", *bits);
-
-            // check if current sequence matches a pattern
-            // checking sorted patterns does not make sense because:
-            // sorted means         -> 1. permutation (probably never gonna be reached)
-            // inverse sorted means -> last permutation (only the case after the loop)
-
-            // uneven bits -> there is a pattern like (10)*1 at index 20/34 = 0.5882, 76/125 = 0.608
-            // but: bits in our cases (bytes!) are always 8n -> even
-            // even bits -> pattern like (10)+ at 49/69 = 0.71 and pattern like (01)+ at 20/69 = 0.289
-
-            if(pattern_is_sorted(*bits)) {
-                printf("sorted!\n");
-                exit_loop = true;
-            }
-            else if(pattern_is_sorted_inverse(*bits)) {
-                printf("invert sorted!\n");
-                exit_loop = true;
-            }
-
-            // for(i = 0; i < num_patterns; ++i) {
-            //     // if(patterns[i].matches(&seq)) {
-            //     //     seq.pattern_id = i;
-            //     //     printf("%llu\n", seq.n);
-            //     //     exit_loop = true;
-            //     //     break;
-            //     // }
-            // }
-            // printf("end of do-while loop\n");
-            // printf("has_next_permutation: %d\n", has_next_permutation);
-        // } while(!exit_loop && has_next_permutation);
-        } while(!exit_loop && next_permutation_bitwise(bits, strlen(buffer) * 8));
 
 
         // go to next block
