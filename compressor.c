@@ -7,6 +7,16 @@
 #include "compressor.h"
 
 
+
+
+void init_nsb_data(struct nsb_data *nsb_data, number num_blocks) {
+    // TODO: arrays might be way too big! init them with the expected size of num_blocks / (block_size + 1)
+    nsb_data->indices = calloc(num_blocks, sizeof(number));
+    nsb_data->perm_indices = calloc(num_blocks, sizeof(number));
+    nsb_data->diffs = calloc(num_blocks, sizeof(signed_number));
+}
+
+
 // from http://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer
 unsigned int number_of_set_bits(int i) {
     i = i - ((i >> 1) & 0x55555555);
@@ -57,132 +67,24 @@ char* bits_to_string(void *p, unsigned int bytes) {
     return res;
 }
 
-// bool pattern_is_sorted(struct sequence *seq) {
-//     char *chr;
-//     char expected_char;
-//     char current_chr;
-//
-//     // printf("pattern_is_sorted\n");
-//
-//     // point to 1st char
-//     chr = seq->chars;
-//
-//     expected_char = '.'; // any
-//
-//     // iterate chars till zero byte
-//     while((current_chr = *chr) != 0) {
-//         // current_chr = *chr;
-//         // printf("%d %c\n", chr, current_chr);
-//         // expecting specific char
-//         if(expected_char == '0' || expected_char == '1') {
-//             if(current_chr != expected_char) {
-//                 return false;
-//             }
-//             // else: do nothing...everything is ok
-//         }
-//         // 0 or 1 may be next
-//         else {
-//             if(current_chr == '1') {
-//                 expected_char = '1';
-//             }
-//             // else: expect any => dont change expected_char's value
-//         }
-//         // go to next char
-//         chr++;
-//     }
-//
-//     return true;
-// }
+/*
+*
+*/
 
-
-// bool pattern_is_sorted_inverse(struct sequence *seq) {
-//     char *chr;
-//     char expected_char;
-//     char current_chr;
-//
-//     // printf("pattern_is_sorted_inverse\n");
-//
-//     // point to 1st char
-//     chr = seq->chars;
-//
-//     expected_char = '.'; // any
-//
-//     // iterate chars till zero byte
-//     while((current_chr = *chr) != 0) {
-//         // current_chr = *chr;
-//         // printf("%d %c\n", chr, current_chr);
-//         // expecting specific char
-//         if(expected_char == '0' || expected_char == '1') {
-//             if(current_chr != expected_char) {
-//                 return false;
-//             }
-//             // else: do nothing...everything is ok
-//         }
-//         // 0 or 1 may be next
-//         else {
-//             if(current_chr == '0') {
-//                 expected_char = '0';
-//             }
-//             // else: expect any => dont change expected_char's value
-//         }
-//         // go to next char
-//         chr++;
-//     }
-//
-//     return true;
-// }
-
-
-bool pattern_is_sorted(number num) {
-    // 1, 3, 7, 15, ... = 2^n-1
-    // regex: 0*1*
-
-    // while last bit is a 1 => shift right
-    while((num & 1) == 1) {
-        num = num >> 1;
-    }
-
-    // if no 1s are left it's 0!
-    return num == 0;
+struct bit_stream create_bit_stream(number *n, unsigned char used_bits) {
+    struct bit_stream result = { .bits = n, .num_blocks = 1, .used_bits = used_bits};
+    return result;
 }
 
-bool pattern_is_sorted_inverse(number num) {
-    // regex 1*0*
+void append_to_bit_stream(struct bit_stream *bit_stream, struct bit_stream *block) {
+    // if the used bits of both are less than sizeof(number) => just append
+    if(bit_stream->used_bits + block->used_bits < sizeof(number)) {
 
-    printf("> %d\n", num);
-
-    // while last bit is a 0 => shift right
-    while((num & 1) == 0) {
-        num = num >> 1;
-        printf(">> %d\n", num);
     }
+    // not enough space => we need to create a second block
+    else {
 
-    //////////////////////////////
-    // same as sorted!!! (TODO?)
-
-    printf("> %d\n", num);
-
-    // while last bit is a 1 => shift right
-    while((num & 1) == 1) {
-        num = num >> 1;
     }
-
-    // if no 1s are left it's 0!
-    return num == 0;
-}
-
-
-void define_patterns() {
-    struct pattern sorted = {.matches = &pattern_is_sorted};
-    struct pattern sorted_inverse = {.matches = &pattern_is_sorted_inverse};
-
-    // allocate memory
-    num_patterns = 2;
-    patterns = calloc(num_patterns, sizeof(struct pattern));
-
-    // assign patterns
-    patterns[0] = sorted;
-    patterns[1] = sorted_inverse;
 }
 
 void compress() {
