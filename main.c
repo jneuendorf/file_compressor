@@ -57,6 +57,71 @@ int main (int argc, char const *argv[]) {
 
     struct bit_stream   result;
 
+    // BITSTREAM TEST
+
+    number test = 1199;
+    number test2 = 1199;
+    struct bit_stream bs1;
+    struct bit_stream bs2;
+    bs1 = create_bs(test, 11); // 1199 = 0000000000000000000000000000000000000000000000000000010010101111
+    // sould equal 10799631906434449408 (11 bits shifted to front and filled up with zeros)
+    // 1001010111100000000000000000000000000000000000000000000000000000
+    printf("> %llu\n", *(bs1.last_block));
+    // prints      10799631906434449408
+    // bs2 = create_bs(&test2, 11);
+    append_num_to_bs(&bs1, &test2, 11);
+    append_num_to_bs(&bs1, &test2, 11);
+    append_num_to_bs(&bs1, &test2, 11);
+    append_num_to_bs(&bs1, &test2, 11);
+    append_num_to_bs(&bs1, &test2, 11);
+
+    // should print:
+    // 10804907740292013867,
+    // 13835058055282163712
+    // 1001010111110010101111100101011111001010111110010101111100101011, 1100000000000000000000000000000000000000000000000000000000000000
+    // correct!!
+
+    // 1110010101111100101011111001010111110010101111000000000100101011
+
+
+    number *p = bs1.bits;
+    printf("Printing bocks:\n");
+    printf(">>> %llu\n", *p);
+    while(p != bs1.last_block) {
+        printf(">>> %llu\n", *(++p));
+    }
+
+    // printf("> avail: %llu\n", bs1.avail_bits); // correct!
+    number num_bytes = 0;
+    unsigned char *bytes = bs_to_byte_stream(&bs1, &num_bytes);
+    unsigned char *p2 = bytes;
+
+    printf("--> %s\n", bits_to_string(bytes, num_bytes));
+
+
+    for(int i = 0; i < num_bytes; ++i) {
+        printf("%d\t->\t%d\t-\t%s\n",i , bytes[i], bits_to_string(p2++, 1));
+    }
+    // prints 9 bytes copied, values:
+    // 0
+    // 0
+    // 80
+    // 235
+    // 136
+    // 127
+    // 0
+    // 0
+    // 2
+    // expected:
+    // 100101011111001010111110010101111100101011111001010111110010101111000000
+    // => 9 bytes is correct!
+    // values: 149, 242, 190, 87, 202, 249, 95, 43, 192
+
+
+    return 0;
+
+
+
 
 
     // max. 64

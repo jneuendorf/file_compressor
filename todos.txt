@@ -1,5 +1,5 @@
 option to not do everything in memory but only blocks of data and then write those blocks to output file directly
 
-prorgress output to command line
+progress output to command line
 
 parallelize
