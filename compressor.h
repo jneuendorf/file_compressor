@@ -3,6 +3,11 @@
 
 #include "global.h"
 
+
+
+#define NEEDED_BITS(n) (floor(log2(n)) + 1)
+
+
 struct mapper_entry {
     number nsb;
     number average;
@@ -15,6 +20,9 @@ struct nsb_data {
     number *perm_indices;
     number avg;
     signed_number *diffs;
+    // unsigned char max_diff_bits;
+    number max_diff;
+    number **next;
 };
 
 struct bit_stream {
@@ -25,11 +33,11 @@ struct bit_stream {
 };
 
 
-void init_nsb_data(struct nsb_data *nsb_data, number block_size);
 
 // SIGNATURES
+void init_nsb_data(struct nsb_data *nsb_data, number block_size);
 
-// void define_patterns();
+// BIT OPERATIONS
 unsigned int number_of_set_bits(int i);
 char* bits_to_string(void *p, unsigned int relevant_bits);
 

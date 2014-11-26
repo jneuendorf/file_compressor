@@ -13,6 +13,7 @@ void init_nsb_data(struct nsb_data *nsb_data, number num_blocks) {
     nsb_data->indices = calloc(num_blocks, sizeof(number));
     nsb_data->perm_indices = calloc(num_blocks, sizeof(number));
     nsb_data->diffs = calloc(num_blocks, sizeof(signed_number));
+    nsb_data->next = calloc(num_blocks, sizeof(number *));
 }
 
 // from http://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer
@@ -62,12 +63,16 @@ char* bits_to_string(void *p, unsigned int bytes) {
     return res;
 }
 
+
+
 /*
 *
 */
 struct bit_stream create_bs(number n, unsigned char used_bits) {
     number *bits;
     unsigned char max_bits;
+
+    // printf("usd bits @create_bs : %d\n", used_bits);
 
     max_bits = sizeof(number) * 8;
 
@@ -96,10 +101,10 @@ void append_num_to_bs(struct bit_stream *bit_stream, number *block, unsigned cha
         *(bit_stream->last_block) = *(bit_stream->last_block) | (*block << (available_bits - used_bits));
         bit_stream->avail_bits -= used_bits;
     }
-    // not enough space => we need to create a second block
+    // not enough space => we need to create a new block
     else {
+        printf("new block for %llu\n", *block);
         // printf("avail: %d, num = %llu\n", available_bits, *(bit_stream->last_block));
-        // 1001010111110010101111100101011111001010111110010101111000000000
 
         // extend array by 1 element
         bit_stream->num_blocks++;
@@ -112,8 +117,6 @@ void append_num_to_bs(struct bit_stream *bit_stream, number *block, unsigned cha
         // add the first bits that still fit => shift num_unwanted bits out (on the right...they don't fit)
         *(bit_stream->last_block) = *(bit_stream->last_block) | (*block >> num_unwanted);
         // printf("modded prev block = %llu\n", *(bit_stream->last_block));
-        // 1001010111110010101111100101011111001010111110010101111000000000
-        // 1001010111110010101111100101011111001010111110010101111100101011
 
         // go to new block
         bit_stream->last_block++;
@@ -141,6 +144,12 @@ This method tries to make the last block smaller so as few as possible bits are 
 */
 unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_bytes) {
     unsigned char *byte_stream;
+    unsigned char *left_block;
+    unsigned char *right_block;
+    unsigned char swap;
+    unsigned char i;
+    // unsigned char j;
+    number *num_block;
     number max_bits;
     number num_bytes;
 
@@ -160,7 +169,35 @@ unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_
     // number n = 10804907740292013867;
     // printf("-> %s\n", bits_to_string(&n, 8));
 
+
+    // number blocks are saved with LSB on the left (= lowest memory address)!
+    if(!is_big_endian()) {
+        // go through all number blocks
+        num_block = bit_stream->bits;
+        do {
+            // point to outermost blocks
+            left_block = (unsigned char *) num_block;
+            right_block = left_block + sizeof(number) - 1;
+
+
+            // for each number block
+            // go through half of the byte blocks of the number block and swap with other half
+            for(i = 0; i < (sizeof(number) >> 1); ++i) {
+                swap = *left_block;
+                // printf()
+                *left_block = *right_block;
+                *right_block = swap;
+
+                // move pointers inward
+                left_block++;
+                right_block--;
+            }
+
+        } while(num_block++ != bit_stream->last_block);
+    }
+
     memcpy(byte_stream, bit_stream->bits, num_bytes);
+
 
 
     // deallocate with realloc(ptr, 0)
