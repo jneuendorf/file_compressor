@@ -4,6 +4,7 @@ CPPC = g++
 
 CFLAGS = -Wall -c
 LFLAGS = -Wall
+PFLAGS = -Wall -O3
 EXE_NAME = compressor
 
 
@@ -33,6 +34,10 @@ main.o: main.c
 permute_test: permutation_test.cpp
 	$(CPPC) $(LFLAGS) permutation_test.cpp -o permute_test
 	./permute_test
+
+production: $(OBJS)
+	$(CC) $(PFLAGS) $(OBJS) -o $(EXE_NAME)
+
 
 run: compressor
 	./$(EXE_NAME)

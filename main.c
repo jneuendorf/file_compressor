@@ -28,42 +28,36 @@
 
 
 int main (int argc, char const *argv[]) {
-    FILE                *file;
+    FILE                *input_file;
+    FILE                *output_file;
     number              file_size;
     number              num_blocks;
+    number              num_mapper_entries;
     char                *buffer;
-    // unsigned char       i; // type must match type of struct sequence.pattern_id
-    // struct sequence     seq;
     number              block_size;
     number              nsb; // number of set bits
     number              *block;
-    // define indices of pattern (=number) of lexicographical order of all permutations
-    // FOR EACH number_of_set_bits! (n^2)
-    // number           indices[MAX_NSB][BLOCK_SIZE];
     number              nsb_permutations[MAX_NSB][MAX_PERM_IDX]; // TODO: improve this: dynamic and smaller sizes (max. perm. index for binom(16 4) is < binom(16 8))
     number              permutation;
     number              perm_idx;
     number              min_perm_idx;
     number              max_perm_idx;
     number              avg_perm_idx;
-    struct mapper_entry mapper[MAX_NSB];
     struct nsb_data     nsb_datas[MAX_NSB];
     struct nsb_data     current_nsb_data;
     number              block_index;
     number              nsb_arrays_lengths[MAX_NSB]; //for keeping track of the array sizes
-    number              max_used_avg_idx;
+    number              nsb_offsets[MAX_NSB]; //for keeping track of the order of the data blocks
+    number              *nsb_order;
+    // number              max_used_avg_idx;
     number              max_avg_idx_bits;
     number              max_used_nsb;
     unsigned char       max_used_nsb_bits;
     number              diff;
     number              max_diff;
     number              current_nsb;
-    number              mapper_entry_size;
     unsigned char       negative_diff;
-    number              *diff_pointer; // points to the current nsb_data.diff[x]
-
     number              i;
-
     struct bit_stream   result;
 
     /*
@@ -142,21 +136,21 @@ int main (int argc, char const *argv[]) {
 
 
     // try to open the file
-    file = fopen(argv[1], "rb");
-    if(file == NULL)  {
+    input_file = fopen(argv[1], "rb");
+    if(input_file == NULL)  {
         printf("Error: Can't open '%s' for read!\n", argv[1]);
         return 1;
     }
 
     // TODO: get file size (for knowing remaining bits and progress)
     // set file position to the end
-    fseek(file, 0L, SEEK_END);
+    fseek(input_file, 0L, SEEK_END);
     // get file size in bytes
-    file_size = ftell(file);
+    file_size = ftell(input_file);
     // seek back to the beginning
-    fseek(file, 0L, SEEK_SET);
+    fseek(input_file, 0L, SEEK_SET);
 
-    num_blocks = file_size / (block_size / 8);
+    num_blocks = CEIL_X_DIV_Y(file_size, (block_size / 8));
 
     printf("file_size = %llu, num_blocks = %llu\n", file_size, num_blocks);
 
@@ -187,12 +181,17 @@ int main (int argc, char const *argv[]) {
     memset(nsb_arrays_lengths, 0, MAX_NSB);
     block_index = 0;
 
+    // p_current_idx = NULL;
+    // p_prev_idx = NULL;
+    // p_first_idx = NULL;
+    nsb_order = calloc(num_blocks, sizeof(number));
+
     // read file til its end (-> feof = end of file)
-    while(!feof(file))    {
+    while(!feof(input_file))    {
         // printf("beginning of read loop\n");
 
         // read next (block_size / 8) bytes (+1 because '\0' is also appended)
-        fgets(buffer, block_size / 8 + 1, file);
+        fgets(buffer, block_size / 8 + 1, input_file);
 
         printf("buffer: %s (%lu)\n", buffer, strlen(buffer));
 
@@ -201,12 +200,15 @@ int main (int argc, char const *argv[]) {
 
         current_nsb = (number) number_of_set_bits(*block); // TODO: for now, only works for 32 bit integers
 
-        printf("current nsb = %llu in %llu = %s\n", current_nsb, *((number *) buffer), bits_to_string(buffer, block_size));
-        printf("current nsb = %llu @ %llu\n", current_nsb, block_index);
+        // printf("current nsb = %llu in %llu = %s\n", current_nsb, *((number *) buffer), bits_to_string(buffer, block_size));
+        // printf("current nsb = %llu @ %llu\n", current_nsb, block_index);
 
         current_nsb_data = nsb_datas[current_nsb];
 
         current_nsb_data.indices[nsb_arrays_lengths[current_nsb]] = block_index;
+
+        // keep track of the order of blocks in our data structure
+        nsb_order[block_index] = current_nsb;
 
         // get permutation index of current block
         perm_idx = 0;
@@ -216,10 +218,10 @@ int main (int argc, char const *argv[]) {
 
         // diffs can be calculated after the average has been determined (after the whole file has been read!)
 
-        nsb_arrays_lengths[current_nsb]++;
-        block_index++;
+        nsb_arrays_lengths[current_nsb]++; // an element was pushed
+        block_index++; // block done
     }
-    fclose(file);
+    fclose(input_file);
 
     ////////////////////////////////////////////////////////////////////////////////
     // 2. CALCULATE REMAINING DATA FROM READ DATA: AVERAGE, DIFFS
@@ -311,8 +313,21 @@ int main (int argc, char const *argv[]) {
     //     printf("\t.max_diff = %llu\n", nsb_datas[nsb].max_diff);
     // }
 
-    // create/prepare result bit_stream
-    result = create_bs(max_used_nsb, NEEDED_BITS(MAX_NSB));
+    // create/prepare result bit_stream with number of mapper entries
+    // get number of mapper entries
+    num_mapper_entries = 0;
+    for(nsb = 1; nsb < MAX_NSB; ++nsb) {
+        if(nsb_arrays_lengths[nsb] > 0) {
+            num_mapper_entries++;
+        }
+    }
+    result = create_bs(num_mapper_entries, NEEDED_BITS(MAX_NSB));
+    printf("appending num_mapper_entries = %llu (%llu bits)\n", num_mapper_entries, (number) NEEDED_BITS(MAX_NSB));
+
+
+
+    // result = create_bs(max_used_nsb, NEEDED_BITS(MAX_NSB));
+    append_num_to_bs(&result, &max_used_nsb, NEEDED_BITS(MAX_NSB));
     printf("appending max_nsb = %llu (%llu bits)\n", max_used_nsb, (number) NEEDED_BITS(MAX_NSB));
 
     max_used_nsb_bits = NEEDED_BITS(max_used_nsb); // floor(log2(max_used_nsb)) + 1;
@@ -322,28 +337,18 @@ int main (int argc, char const *argv[]) {
     // get max. nsb that has data in the mapper
     // append_num_to_bs(&bs1, &test2, 11);
     printf("max_used_nsb = %llu (needs %d bits)\n", max_used_nsb, max_used_nsb_bits);
-    // append_num_to_bs(&result, max_used_nsb, floor(log2(max_used_nsb)) + 1);
-
-    // number *p = result.bits;
-    // printf("Printing bocks:\n");
-    // printf(">>> %llu\n", *p);
-    // while(p != result.last_block) {
-    //     printf(">>> %llu\n", *(++p));
-    // }
-    // prints: 12682136550675316736 = 1011000000000000000000000000000000000000000000000000000000000000, correct!
 
     ////////////////////////////////////////////////////////////////////////////////
     // 4. CREATE MAPPER FROM THE DATA WE'VE COLLECTED
     max_avg_idx_bits = NEEDED_BITS(MAX_AVG_IDX); //floor(log2(MAX_AVG_IDX)) + 1; //
 
-    // mapper_entry_size = max_used_nsb_bits + max_avg_idx_bits + 1 + ;
-
+    // mapper_entry_size = max_used_nsb_bits + 2*max_avg_idx_bits + 1;
     for(nsb = 1; nsb < MAX_NSB; ++nsb) {
         if(nsb_arrays_lengths[nsb] > 0) {
             // write mapper entry:
             // nsb
             append_num_to_bs(&result, &nsb, max_used_nsb_bits);
-            printf("appending nsb = %llu (%llu bits)\n", nsb, max_used_nsb_bits);
+            printf("appending nsb = %llu (%hhu bits)\n", nsb, max_used_nsb_bits);
             // average
             append_num_to_bs(&result, &nsb_datas[nsb].avg, max_avg_idx_bits);
             printf("appending average = %llu (%llu bits)\n", nsb_datas[nsb].avg, max_avg_idx_bits);
@@ -359,8 +364,19 @@ int main (int argc, char const *argv[]) {
             printf("appending neg_diff_flag = %d (1 bit)\n", negative_diff);
             // max_diff
             append_num_to_bs(&result, (number *) &nsb_datas[nsb].max_diff, max_avg_idx_bits);
-            printf("appending max_diff = %hhu (%llu bits)\n", nsb_datas[nsb].max_diff, max_avg_idx_bits);
+            printf("appending max_diff = %llu (%llu bits)\n", nsb_datas[nsb].max_diff, max_avg_idx_bits);
         }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // 5. CREATE COMPRESSED DATA
+    // init nsb_offsets array to 0
+    memset(nsb_offsets, 0, MAX_NSB * sizeof(number)); // or init it like number nsb_offsets[MAX_NSB] = {0}; at beginning of main()
+    // go through nsb_order
+    for(i = 0; i < num_blocks; ++i) {
+        nsb = nsb_order[i];
+        printf("appending diff = %lld\n", nsb_datas[nsb].diffs[nsb_offsets[nsb]]);
+        append_num_to_bs(&result, (number *) &nsb_datas[nsb].diffs[nsb_offsets[nsb]], NEEDED_BITS(nsb_datas[nsb].max_diff));
     }
 
     number *p = result.bits;
@@ -371,47 +387,42 @@ int main (int argc, char const *argv[]) {
     }
     printf("last block available = %d\n", result.avail_bits);
     // prints:
-    // 3747223588829913088 = 0011010000000000110100000000000000011010001010111110000000000000
-    // 0 = 0000000000000000000000000000000000000000000000000000000000000000
-    // last block available = 63
-    // expected 00110|100 0000000011010 0 0000000000000|110 1000101011111 0 000000000000 -- 0
-    // given    00110 100 0000000011010 0 0000000000000 110 1000101011111 0 000000000000 -- 0
+    // 1270162979246268160 = 0001000110100000100001101000000000000000110100110101111100000000
+    // 0                   = 00000000
+    // last block available = 56
+    // this makes:
+    // 000100011010000010000110100000000000000011010011010111110000000000000000
+    //
+    // expected:
+    // 00010|00110|100 0000000011010 0 0000000000000|110 1000101011111 0 0000000000000|0 0
+    // 00010 00110 100 0001000011010 0 0000000000000 110 1001101011111 0 0000000000000 0 0
     // correct!
 
     ////////////////////////////////////////////////////////////////////////////////
-    // 5. CREATE COMPRESSED DATA
-    // fseek(file, 0L, SEEK_SET);
-    // // read file til its end (-> feof = end of file)
-    // while(!feof(file))    {
-    //     // read next (block_size / 8) bytes (+1 because '\0' is also appended)
-    //     fgets(buffer, block_size / 8 + 1, file);
-    //
-    //     printf("buffer: %s (%lu)\n", buffer, strlen(buffer));
-    //
-    //     block = (number *) buffer;
-    //     // printf("%d\n", *block);
-    //
-    //     current_nsb = (number) number_of_set_bits(*block); // TODO: for now, only works for 32 bit integers
-    //
-    //     // printf("current nsb = %llu in %llu = %s\n", current_nsb, *((number *) buffer), bits_to_string(buffer, block_size));
-    //     // printf("current nsb = %llu @ %llu\n", current_nsb, block_index);
-    //
-    //     current_nsb_data = nsb_datas[current_nsb];
-    //
-    //     current_nsb_data.indices[nsb_arrays_lengths[current_nsb]] = block_index;
-    //
-    //     // get permutation index of current block
-    //     perm_idx = 0;
-    //     while(nsb_permutations[current_nsb][perm_idx++] != *block) {}
-    //
-    //         current_nsb_data.perm_indices[nsb_arrays_lengths[current_nsb]] = perm_idx;
-    //
-    //         // diffs can be calculated after the average has been determined (after the whole file has been read!)
-    //
-    //         nsb_arrays_lengths[current_nsb]++;
-    //         block_index++;
-    //     }
-    // fclose(file);
+    // 6. WRITE COMPRESSED DATA TO OUTPUT FILE
+    number written_bytes = 0;
+    unsigned char* output = bs_to_byte_stream(&result, &written_bytes);
+    printf("byte stream has %llu bytes\nprinting...\n", written_bytes);
+    for(i = 0; i < written_bytes; ++i) {
+        printf("%d\n", (unsigned char) output[i]);
+    }
+    // prints: (from 00010001 10100000 10000110 10000000 00000000 11010011 01011111 00000000 00000000)
+    // 17   correct
+    // 160  correct
+    // 134  correct
+    // 128  correct
+    // 0    correct
+    // 211  correct
+    // 95   correct
+    // 0    correct
+    // 0    correct
+
+    output_file = fopen(argv[2], "wb");
+    if(output_file == NULL)  {
+        printf("Error: Can't open '%s' for write!\n", argv[2]);
+        return 1;
+    }
+    fwrite(output, sizeof(unsigned char), written_bytes, output_file);
 
     return 0;
 }

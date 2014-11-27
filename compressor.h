@@ -5,7 +5,9 @@
 
 
 
-#define NEEDED_BITS(n) (floor(log2(n)) + 1)
+#define NEEDED_BITS(n) ((n) > 0 ? floor(log2(n)) + 1 : 1)
+// #define CEIL(x, y) (1 + ((x - 1) / y))
+#define CEIL_X_DIV_Y(x,y) (((x) + (y) - 1) / (y))
 
 
 struct mapper_entry {

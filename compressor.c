@@ -155,9 +155,10 @@ unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_
 
     max_bits = sizeof(number) * 8;
 
-    // number of bytes to copy = bytes_in_numer * (num_blocks-1) + ceil(used_bits of last block / 8)
+    // number of bytes to copy = bytes_in_number * (num_blocks-1) + ceil(used_bits of last block / 8)
     // ceil(x/y) = 1 + ((x - 1) / y); // if x != 0
-    num_bytes = (bit_stream->num_blocks - 1) * sizeof(number) + (max_bits - bit_stream->avail_bits + 1) / 8 + 1;
+    // num_bytes = (bit_stream->num_blocks - 1) * sizeof(number) + (max_bits - bit_stream->avail_bits + 1) / 8 + 1;
+    num_bytes = (bit_stream->num_blocks - 1) * sizeof(number) + CEIL_X_DIV_Y(max_bits - bit_stream->avail_bits, 8);
 
     // allocate memory
     byte_stream = (unsigned char *) calloc(num_bytes, sizeof(unsigned char));
