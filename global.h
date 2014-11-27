@@ -5,6 +5,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define DEBUG
+
+
+#ifdef DEBUG
+#define D(x) x
+#else
+#define D(x)
+#endif
+
+
+
 typedef unsigned char byte;
 typedef unsigned long long number;
 typedef signed long long signed_number;

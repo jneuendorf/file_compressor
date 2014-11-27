@@ -5,7 +5,7 @@
 
 
 
-#define NEEDED_BITS(n) ((n) > 0 ? floor(log2(n)) + 1 : 1)
+#define NEEDED_BITS(n) ((n) > 0 ? (floor(log2(n)) + 1) : 1)
 // #define CEIL(x, y) (1 + ((x - 1) / y))
 #define CEIL_X_DIV_Y(x,y) (((x) + (y) - 1) / (y))
 
@@ -22,9 +22,8 @@ struct nsb_data {
     number *perm_indices;
     number avg;
     signed_number *diffs;
-    // unsigned char max_diff_bits;
-    number max_diff;
-    number **next;
+    number max_diff_bits;
+    // number max_diff;
 };
 
 struct bit_stream {

@@ -54,14 +54,15 @@ int main (int argc, char const *argv[]) {
     number              max_used_nsb;
     unsigned char       max_used_nsb_bits;
     number              diff;
-    number              max_diff;
+    // number              max_diff;
+    number              max_diff_bits;
     number              current_nsb;
-    unsigned char       negative_diff;
+    number              negative_diff;
     number              i;
     struct bit_stream   result;
 
     /*
-    printf("endianness = %d\n", is_big_endian());
+    D(printf("endianness = %d\n", is_big_endian()));
 
     // BITSTREAM TEST
 
@@ -72,7 +73,7 @@ int main (int argc, char const *argv[]) {
     bs1 = create_bs(test, 11); // 1199 = 0000000000000000000000000000000000000000000000000000010010101111
     // sould equal 10799631906434449408 (11 bits shifted to front and filled up with zeros)
     // 1001010111100000000000000000000000000000000000000000000000000000
-    printf("> %llu\n", *(bs1.last_block));
+    D(printf("> %llu\n", *(bs1.last_block)));
     // prints      10799631906434449408
     // bs2 = create_bs(&test2, 11);
     append_num_to_bs(&bs1, &test2, 11);
@@ -88,21 +89,21 @@ int main (int argc, char const *argv[]) {
     // correct!!
 
     number *p = bs1.bits;
-    printf("Printing bocks:\n");
-    printf(">>> %llu\n", *p);
+    D(printf("Printing bocks:\n"));
+    D(printf(">>> %llu\n", *p));
     while(p != bs1.last_block) {
-        printf(">>> %llu\n", *(++p));
+        D(printf(">>> %llu\n", *(++p)));
     }
 
-    // printf("> avail: %llu\n", bs1.avail_bits); // correct!
+    // D(printf("> avail: %llu\n", bs1.avail_bits); // correct)!
     number num_bytes = 0;
     unsigned char *bytes = bs_to_byte_stream(&bs1, &num_bytes);
     unsigned char *p2 = bytes;
 
-    printf("--> %s\n", bits_to_string(bytes, num_bytes));
+    D(printf("--> %s\n", bits_to_string(bytes, num_bytes)));
 
     for(int i = 0; i < num_bytes; ++i) {
-        printf("%d\t->\t%d\t-\t%s\n",i , bytes[i], bits_to_string(p2++, 1));
+        D(printf("%d\t->\t%d\t-\t%s\n",i , bytes[i], bits_to_string(p2++, 1)));
     }
     // prints 9 bytes copied, values:
     // 0
@@ -122,6 +123,8 @@ int main (int argc, char const *argv[]) {
     return 0;
     */
 
+    D(printf("needed bits for -2 = %d\n", (unsigned char) NEEDED_BITS((number) -2));)
+
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
     // max. 64
@@ -130,7 +133,7 @@ int main (int argc, char const *argv[]) {
     buffer = calloc(block_size / 8 + 1, sizeof(char));
 
     if(argc < 3) {
-        printf("Usage: %s <input file> <output file>\n", argv[0]);
+        D(printf("Usage: %s <input file> <output file>\n", argv[0]);)
         return 1;
     }
 
@@ -138,7 +141,7 @@ int main (int argc, char const *argv[]) {
     // try to open the file
     input_file = fopen(argv[1], "rb");
     if(input_file == NULL)  {
-        printf("Error: Can't open '%s' for read!\n", argv[1]);
+        D(printf("Error: Can't open '%s' for read!\n", argv[1]);)
         return 1;
     }
 
@@ -152,7 +155,7 @@ int main (int argc, char const *argv[]) {
 
     num_blocks = CEIL_X_DIV_Y(file_size, (block_size / 8));
 
-    printf("file_size = %llu, num_blocks = %llu\n", file_size, num_blocks);
+    D(printf("file_size = %llu, num_blocks = %llu\n", file_size, num_blocks);)
 
 
     // TODO: make this static? (just define huge arrays (without calculations))
@@ -160,15 +163,15 @@ int main (int argc, char const *argv[]) {
     //    also initialize all the pointers of struct nsb_data
     // TODO: fix next_permutation_bitwise with 0 as argument...seems to be endless
     for(nsb = 1; nsb < MAX_NSB; ++nsb) {
-        // printf("nsb = %llu, block_size = %llu...\n", nsb, block_size);
+        // D(printf("nsb = %llu, block_size = %llu...\n", nsb, block_size);)
         // permutations
         permutation = (1 << nsb) - 1; // 2^nsb - 1 = nsb many 1s (= the first permutation for that many set bits)
         perm_idx = 0;
         do {
-            // printf("current perm_idx = %llu, current permutation = %llu\n", perm_idx, permutation);
+            // D(printf("current perm_idx = %llu, current permutation = %llu\n", perm_idx, permutation);)
             nsb_permutations[nsb][perm_idx++] = permutation;
         } while(next_permutation_bitwise(&permutation, block_size));
-        // printf("all permutations loaded for nsb = %llu\n", nsb);
+        // D(printf("all permutations loaded for nsb = %llu\n", nsb);)
         // nsb_data pointers
         init_nsb_data(&nsb_datas[nsb], num_blocks);
     }
@@ -188,20 +191,20 @@ int main (int argc, char const *argv[]) {
 
     // read file til its end (-> feof = end of file)
     while(!feof(input_file))    {
-        // printf("beginning of read loop\n");
+        // D(printf("beginning of read loop\n");)
 
         // read next (block_size / 8) bytes (+1 because '\0' is also appended)
         fgets(buffer, block_size / 8 + 1, input_file);
 
-        printf("buffer: %s (%lu)\n", buffer, strlen(buffer));
+        D(printf("buffer: %s (%lu)\n", buffer, strlen(buffer));)
 
         block = (number *) buffer;
-        // printf("%d\n", *block);
+        // D(printf("%d\n", *block);)
 
         current_nsb = (number) number_of_set_bits(*block); // TODO: for now, only works for 32 bit integers
 
-        // printf("current nsb = %llu in %llu = %s\n", current_nsb, *((number *) buffer), bits_to_string(buffer, block_size));
-        // printf("current nsb = %llu @ %llu\n", current_nsb, block_index);
+        // D(printf("current nsb = %llu in %llu = %s\n", current_nsb, *((number *) buffer), bits_to_string(buffer, block_size));)
+        // D(printf("current nsb = %llu @ %llu\n", current_nsb, block_index);)
 
         current_nsb_data = nsb_datas[current_nsb];
 
@@ -268,49 +271,60 @@ int main (int argc, char const *argv[]) {
         nsb_datas[nsb].avg = avg_perm_idx;
 
         // get differences of perm. indices to the average perm. index (perm_idx - avg_perm_idx)
-        max_diff = 0;
+        // max_diff = 0;
+        // TODO: adjust how diffs are saved:
+        // TODO:    - remove neg_diff flag,
+        // TODO:    - add additional bit for all diffs (sign bit) in the very front
+        // TODO:    -> 1 = '-', 0 = '+' (define zero as '+')
+        // TODO:    this causes the negative diffs to take a lot less bits!! (right now it's 64+1 bits instead of max. 13!)
+        max_diff_bits = 0;
         for(i = 0; i < nsb_arrays_lengths[nsb]; ++i) {
             diff = nsb_datas[nsb].perm_indices[i] - avg_perm_idx;
             nsb_datas[nsb].diffs[i] = diff;
-            if((diff = abs(diff)) > max_diff) {
-                max_diff = diff;
+            // if((diff = abs(diff)) > max_diff) {
+            //     max_diff = diff;
+            // }
+            if((diff = NEEDED_BITS((number) diff)) > max_diff_bits) {
+                max_diff_bits = diff;
             }
         }
         // nsb_datas[nsb].max_diff_bits = (unsigned char) NEEDED_BITS(max_diff);
-        nsb_datas[nsb].max_diff = max_diff;
+        // nsb_datas[nsb].max_diff = max_diff;
+        nsb_datas[nsb].max_diff_bits = max_diff_bits;
     }
 
     // // test: print indices and perm. indices for each nsb
     // for(nsb = 1; nsb < MAX_NSB; ++nsb) {
     //     // indices
-    //     printf("data for %llu:\n\t.indices = ", nsb);
+    //     D(printf("data for %llu:\n\t.indices = ", nsb);)
     //
     //     for(i = 0; i < nsb_arrays_lengths[nsb]; i++) {
-    //         printf("%llu, ", nsb_datas[nsb].indices[i]);
+    //         D(printf("%llu, ", nsb_datas[nsb].indices[i]);)
     //     }
-    //     printf("\n");
+    //     D(printf("\n");)
     //
     //     // permutation indices
-    //     printf("\t.perm_indices = ");
+    //     D(printf("\t.perm_indices = ");)
     //
     //     for(i = 0; i < nsb_arrays_lengths[nsb]; i++) {
-    //         printf("%llu, ", nsb_datas[nsb].perm_indices[i]);
+    //         D(printf("%llu, ", nsb_datas[nsb].perm_indices[i]);)
     //     }
-    //     printf("\n");
+    //     D(printf("\n");)
     //
     //     // average
-    //     printf("\t.avg = %llu\n", nsb_datas[nsb].avg);
+    //     D(printf("\t.avg = %llu\n", nsb_datas[nsb].avg);)
     //
     //     // diffs
-    //     printf("\t.diffs = ");
+    //     D(printf("\t.diffs = ");)
     //
     //     for(i = 0; i < nsb_arrays_lengths[nsb]; i++) {
-    //         printf("%lld, ", nsb_datas[nsb].diffs[i]);
+    //         D(printf("%lld, ", nsb_datas[nsb].diffs[i]);)
     //     }
-    //     printf("\n");
+    //     D(printf("\n");)
     //
     //     // max diff
-    //     printf("\t.max_diff = %llu\n", nsb_datas[nsb].max_diff);
+    //     // D(printf("\t.max_diff = %llu\n", nsb_datas[nsb].max_diff);)
+    //     D(printf("\t.max_diff_bits = %llu\n", nsb_datas[nsb].max_diff_bits);)
     // }
 
     // create/prepare result bit_stream with number of mapper entries
@@ -322,13 +336,13 @@ int main (int argc, char const *argv[]) {
         }
     }
     result = create_bs(num_mapper_entries, NEEDED_BITS(MAX_NSB));
-    printf("appending num_mapper_entries = %llu (%llu bits)\n", num_mapper_entries, (number) NEEDED_BITS(MAX_NSB));
+    D(printf("appending num_mapper_entries = %llu (%llu bits)\n", num_mapper_entries, (number) NEEDED_BITS(MAX_NSB));)
 
 
 
     // result = create_bs(max_used_nsb, NEEDED_BITS(MAX_NSB));
     append_num_to_bs(&result, &max_used_nsb, NEEDED_BITS(MAX_NSB));
-    printf("appending max_nsb = %llu (%llu bits)\n", max_used_nsb, (number) NEEDED_BITS(MAX_NSB));
+    D(printf("appending max_used_nsb = %llu (%llu bits)\n", max_used_nsb, (number) NEEDED_BITS(MAX_NSB));)
 
     max_used_nsb_bits = NEEDED_BITS(max_used_nsb); // floor(log2(max_used_nsb)) + 1;
 
@@ -336,7 +350,7 @@ int main (int argc, char const *argv[]) {
     // 3. CREATE META DATA (ABOUT THE MAPPER)
     // get max. nsb that has data in the mapper
     // append_num_to_bs(&bs1, &test2, 11);
-    printf("max_used_nsb = %llu (needs %d bits)\n", max_used_nsb, max_used_nsb_bits);
+    D(printf("max_used_nsb = %llu (needs %d bits)\n", max_used_nsb, max_used_nsb_bits);)
 
     ////////////////////////////////////////////////////////////////////////////////
     // 4. CREATE MAPPER FROM THE DATA WE'VE COLLECTED
@@ -348,10 +362,12 @@ int main (int argc, char const *argv[]) {
             // write mapper entry:
             // nsb
             append_num_to_bs(&result, &nsb, max_used_nsb_bits);
-            printf("appending nsb = %llu (%hhu bits)\n", nsb, max_used_nsb_bits);
+            D(printf("appending nsb = %llu (%hhu bits)\n", nsb, max_used_nsb_bits);)
+
             // average
             append_num_to_bs(&result, &nsb_datas[nsb].avg, max_avg_idx_bits);
-            printf("appending average = %llu (%llu bits)\n", nsb_datas[nsb].avg, max_avg_idx_bits);
+            D(printf("appending average = %llu (%llu bits)\n", nsb_datas[nsb].avg, max_avg_idx_bits);)
+
             // negavtive_diffs
             negative_diff = 0;
             for(i = 0; i < nsb_arrays_lengths[nsb]; ++i) {
@@ -360,11 +376,17 @@ int main (int argc, char const *argv[]) {
                     break;
                 }
             }
-            append_num_to_bs(&result, (number *) &negative_diff, 1);
-            printf("appending neg_diff_flag = %d (1 bit)\n", negative_diff);
-            // max_diff
-            append_num_to_bs(&result, (number *) &nsb_datas[nsb].max_diff, max_avg_idx_bits);
-            printf("appending max_diff = %llu (%llu bits)\n", nsb_datas[nsb].max_diff, max_avg_idx_bits);
+            append_num_to_bs(&result, &negative_diff, 1);
+            D(printf("appending neg_diff_flag = %llu (1 bit)\n", negative_diff);)
+
+            // max_diff_bits
+            // append_num_to_bs(&result, (number *) &nsb_datas[nsb].max_diff, max_avg_idx_bits);
+            // D(printf("appending max_diff = %llu (%llu bits)\n", nsb_datas[nsb].max_diff, max_avg_idx_bits);)
+            append_num_to_bs(&result, &nsb_datas[nsb].max_diff_bits, NEEDED_BITS(max_avg_idx_bits));
+            D(printf("appending max_diff_bits = %llu (%llu bits)\n", nsb_datas[nsb].max_diff_bits, (number) NEEDED_BITS(max_avg_idx_bits));)
+            D(printf(">>> %llu\n", *(result.bits));)
+            // 00010 00110 100 0000000011010 0 0001 000000000000000000000000000000000
+            // 00010 00110 100 0000000011010 0 0001
         }
     }
 
@@ -375,17 +397,20 @@ int main (int argc, char const *argv[]) {
     // go through nsb_order
     for(i = 0; i < num_blocks; ++i) {
         nsb = nsb_order[i];
-        printf("appending diff = %lld\n", nsb_datas[nsb].diffs[nsb_offsets[nsb]]);
-        append_num_to_bs(&result, (number *) &nsb_datas[nsb].diffs[nsb_offsets[nsb]], NEEDED_BITS(nsb_datas[nsb].max_diff));
+        D(printf("appending diff = %lld\n", nsb_datas[nsb].diffs[nsb_offsets[nsb]]);)
+        // append_num_to_bs(&result, (number *) &nsb_datas[nsb].diffs[nsb_offsets[nsb]], NEEDED_BITS(nsb_datas[nsb].max_diff));
+        append_num_to_bs(&result, (number *) &nsb_datas[nsb].diffs[nsb_offsets[nsb]], nsb_datas[nsb].max_diff_bits);
     }
 
     number *p = result.bits;
-    printf("Printing bocks:\n");
-    printf(">>> %llu\n", *p);
+    D(printf("Printing blocks:\n");)
+    D(printf("1st block = %llu,last_block = %llu\n", result.bits, result.last_block);)
+    D(printf(">>> %llu\n", *p);)
     while(p != result.last_block) {
-        printf(">>> %llu\n", *(++p));
+        D(printf(">>> %llu\n", *(++p));)
+        // D(printf(">>> %llu < %llu\n", p, result.last_block);)
     }
-    printf("last block available = %d\n", result.avail_bits);
+    D(printf("last block available = %d\n", result.avail_bits);)
     // prints:
     // 1270162979246268160 = 0001000110100000100001101000000000000000110100110101111100000000
     // 0                   = 00000000
@@ -398,28 +423,28 @@ int main (int argc, char const *argv[]) {
     // 00010 00110 100 0001000011010 0 0000000000000 110 1001101011111 0 0000000000000 0 0
     // correct!
 
+
+    // with max_diff_bits instead of max_diff:
+    // 1270162994914791424 = 0001000110100000100001101000001110100110101111100001000000000000
+    // last block available = 10
+    // expected:
+    // 00010|00110|100 0000000011010 0 0001|110 1000101011111 0 0001|0 0
+    // 00010 00110 100 0001000011010 0 0001 110 1001101011111 0 0001 0 0
+
+
+
     ////////////////////////////////////////////////////////////////////////////////
     // 6. WRITE COMPRESSED DATA TO OUTPUT FILE
     number written_bytes = 0;
     unsigned char* output = bs_to_byte_stream(&result, &written_bytes);
-    printf("byte stream has %llu bytes\nprinting...\n", written_bytes);
-    for(i = 0; i < written_bytes; ++i) {
-        printf("%d\n", (unsigned char) output[i]);
-    }
-    // prints: (from 00010001 10100000 10000110 10000000 00000000 11010011 01011111 00000000 00000000)
-    // 17   correct
-    // 160  correct
-    // 134  correct
-    // 128  correct
-    // 0    correct
-    // 211  correct
-    // 95   correct
-    // 0    correct
-    // 0    correct
+    D(printf("byte stream has %llu bytes\nprinting...\n", written_bytes);)
+    // for(i = 0; i < written_bytes; ++i) {
+    //     D(printf("%d\n", (unsigned char) output[i]);)
+    // }
 
     output_file = fopen(argv[2], "wb");
     if(output_file == NULL)  {
-        printf("Error: Can't open '%s' for write!\n", argv[2]);
+        D(printf("Error: Can't open '%s' for write!\n", argv[2]);)
         return 1;
     }
     fwrite(output, sizeof(unsigned char), written_bytes, output_file);

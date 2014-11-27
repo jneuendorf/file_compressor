@@ -13,7 +13,6 @@ void init_nsb_data(struct nsb_data *nsb_data, number num_blocks) {
     nsb_data->indices = calloc(num_blocks, sizeof(number));
     nsb_data->perm_indices = calloc(num_blocks, sizeof(number));
     nsb_data->diffs = calloc(num_blocks, sizeof(signed_number));
-    nsb_data->next = calloc(num_blocks, sizeof(number *));
 }
 
 // from http://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer
@@ -103,12 +102,9 @@ void append_num_to_bs(struct bit_stream *bit_stream, number *block, unsigned cha
     }
     // not enough space => we need to create a new block
     else {
-        printf("new block for %llu\n", *block);
+        // printf("new block for %llu\n", *block);
         // printf("avail: %d, num = %llu\n", available_bits, *(bit_stream->last_block));
 
-        // extend array by 1 element
-        bit_stream->num_blocks++;
-        bit_stream->bits = (number *) realloc(bit_stream->bits, sizeof(number) * bit_stream->num_blocks);
 
         // some bits have to go into the previous block and some into the (new) last block
 
@@ -118,8 +114,15 @@ void append_num_to_bs(struct bit_stream *bit_stream, number *block, unsigned cha
         *(bit_stream->last_block) = *(bit_stream->last_block) | (*block >> num_unwanted);
         // printf("modded prev block = %llu\n", *(bit_stream->last_block));
 
+        // extend array by 1 element
+        bit_stream->num_blocks++;
+        bit_stream->bits = (number *) realloc(bit_stream->bits, sizeof(number) * bit_stream->num_blocks);
+
         // go to new block
-        bit_stream->last_block++;
+        // the reallocation might have changed the pointer bit_stream->bits
+        // that's why we need to reset bit_stream->last_block
+        bit_stream->last_block = bit_stream->bits + (bit_stream->num_blocks - 1);
+
         // clear memory in new block
         memset(bit_stream->last_block, 0, sizeof(number));
 
@@ -165,8 +168,8 @@ unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_
 
 
     // copy memory from second pointer to the first
-    printf("copying %llu bytes...\n", num_bytes);
-    printf("first num = %llu -> %s\n", bit_stream->bits[0], bits_to_string(bit_stream->bits, 8));
+    // printf("copying %llu bytes...\n", num_bytes);
+    // printf("first num = %llu -> %s\n", bit_stream->bits[0], bits_to_string(bit_stream->bits, 8));
     // number n = 10804907740292013867;
     // printf("-> %s\n", bits_to_string(&n, 8));
 
@@ -193,7 +196,6 @@ unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_
                 left_block++;
                 right_block--;
             }
-
         } while(num_block++ != bit_stream->last_block);
     }
 
