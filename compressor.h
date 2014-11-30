@@ -46,5 +46,6 @@ char* bits_to_string(void *p, unsigned int relevant_bits);
 struct bit_stream create_bs(number n, unsigned char used_bits);
 void append_num_to_bs(struct bit_stream *bit_stream, number *block, unsigned char used_bits);
 unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_bytes);
+number get_bs_size(struct bit_stream *bit_stream);
 
 #endif

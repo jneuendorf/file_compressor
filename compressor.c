@@ -209,6 +209,12 @@ unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_
     return byte_stream;
 }
 
+number get_bs_size(struct bit_stream *bit_stream) {
+    return (bit_stream->num_blocks - 1) * sizeof(number) + sizeof(number) * 8 - bit_stream->avail_bits;
+}
+
+
+
 void compress() {
 
 }

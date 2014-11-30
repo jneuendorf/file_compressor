@@ -24,13 +24,14 @@ int next_permutation_bitwise(number *n, size_t length) {
     byte temp;
     byte successor;
 
-    if(length == 0) {
+    // if number is 0 or length is 0 return false right away
+    if(*n == 0 || length == 0) {
         return 0;
     }
 
     // Find non-increasing suffix
     i = 0;
-    while(i < length && get_bit_at(n, i + 1) >= get_bit_at(n, i) /*array[i - 1] >= array[i]*/) {
+    while(i < length && get_bit_at(n, i + 1) >= get_bit_at(n, i)) {
         i++;
     }
 
@@ -38,6 +39,7 @@ int next_permutation_bitwise(number *n, size_t length) {
     if(i == length - 1) {
         return 0;
     }
+
 
     // Find rightmost successor to pivot in suffix
     j = 0;
