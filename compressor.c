@@ -15,6 +15,30 @@ void init_nsb_data(struct nsb_data *nsb_data, number num_blocks) {
     nsb_data->diffs = calloc(num_blocks, sizeof(signed_number));
 }
 
+// from: http://www.geeksforgeeks.org/space-and-time-efficient-binomial-coefficient/
+// Returns value of Binomial Coefficient C(n, k)
+number binom(unsigned char n, unsigned char k) {
+    number res;
+    unsigned char i;
+
+    res = 1;
+
+    // Since C(n, k) = C(n, n-k)
+    if(k > n - k) {
+        k = n - k;
+    }
+
+    // Calculate value of [n * (n-1) *---* (n-k+1)] / [k * (k-1) *----* 1]
+    for(i = 0; i < k; ++i) {
+        res *= (n - i);
+        res /= (i + 1);
+    }
+
+    return res;
+}
+
+
+
 // from http://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer
 unsigned int number_of_set_bits(int i) {
     i = i - ((i >> 1) & 0x55555555);
@@ -201,27 +225,19 @@ unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_
 
     memcpy(byte_stream, bit_stream->bits, num_bytes);
 
-
-
-    // deallocate with realloc(ptr, 0)
     *written_bytes = num_bytes;
 
     return byte_stream;
 }
 
+// deallocate with realloc(ptr, 0)
+
+
+
 number get_bs_size(struct bit_stream *bit_stream) {
     return (bit_stream->num_blocks - 1) * sizeof(number) + sizeof(number) * 8 - bit_stream->avail_bits;
 }
 
-
-
-void compress() {
-
-}
-
-void compress_blockwise() {
-
-}
 
 // http://graphics.stanford.edu/~seander/bithacks.html#SwappingBitsXOR
 // Swapping individual bits with XOR

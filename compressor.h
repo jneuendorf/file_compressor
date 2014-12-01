@@ -37,6 +37,7 @@ struct bit_stream {
 
 // SIGNATURES
 void init_nsb_data(struct nsb_data *nsb_data, number block_size);
+number binom(unsigned char n, unsigned char k);
 
 // BIT OPERATIONS
 unsigned int number_of_set_bits(int i);

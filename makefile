@@ -1,4 +1,4 @@
-OBJS = global.o permutation.o compressor.o main.o
+OBJS = global.o permutation.o compress.o decompress.o compressor.o main.o
 CC = gcc
 CPPC = g++
 
@@ -25,6 +25,12 @@ permutation.o: permutation.c permutation.h
 
 compressor.o: compressor.c compressor.h
 	$(CC) $(CFLAGS) compressor.c
+
+compress.o: compress.c compress.h
+	$(CC) $(CFLAGS) compress.c
+
+decompress.o: decompress.c decompress.h
+	$(CC) $(CFLAGS) decompress.c
 
 main.o: main.c
 	$(CC) $(CFLAGS) main.c

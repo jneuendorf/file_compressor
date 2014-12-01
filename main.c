@@ -1,11 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-//////////////////////////////////////////////////////////////////
 #include "global.h"
 #include "permutation.h"
 #include "compressor.h"
+#include "compress.h"
+#include "decompress.h"
 
 //////////////////////////////////////////////////////////////////
 #ifndef BLOCK_SIZE
@@ -33,19 +30,19 @@ int main (int argc, char const *argv[]) {
     number              file_size;
     number              num_blocks;
     number              num_mapper_entries;
-    char                *buffer;
+    // char                *buffer;
     number              block_size;
     number              nsb; // number of set bits
-    number              *block;
-    number              nsb_permutations[MAX_NSB][MAX_PERM_IDX]; // TODO: improve this: dynamic and smaller sizes (max. perm. index...binom(16 4) < binom(16 8))
+    number              **nsb_permutations;
+    number              *nsb_permutation;
     number              permutation;
     number              perm_idx;
     number              min_perm_idx;
     number              max_perm_idx;
     number              avg_perm_idx;
     struct nsb_data     nsb_datas[MAX_NSB];
-    struct nsb_data     current_nsb_data;
-    number              block_index;
+    // struct nsb_data     current_nsb_data;
+    // number              block_index;
     number              nsb_arrays_lengths[MAX_NSB]; //for keeping track of the array sizes
     number              nsb_offsets[MAX_NSB]; //for keeping track of the order of the data blocks
     number              *nsb_order;
@@ -55,33 +52,17 @@ int main (int argc, char const *argv[]) {
     unsigned char       max_used_nsb_bits;
     signed_number       diff;
     number              max_diff_bits;
-    number              current_nsb;
-    number              negative_diff;
+    // number              current_nsb;
+    // number              negative_diff;
     number              i;
     struct bit_stream   result;
+    number              binomCoeff;
 
 
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
     // max. 64
     block_size = 16;
-
-    // D(
-    //     num_blocks = 6;
-    //     nsb = 0;
-    //     D(printf("nsb = %llu, block_size = %llu...\n", nsb, block_size);)
-    //     // permutations
-    //     permutation = (1 << nsb) - 1; // 2^nsb - 1 = nsb many 1s (= the first permutation for that many set bits)
-    //     perm_idx = 0;
-    //     do {
-    //         D(printf("current perm_idx = %llu, current permutation = %llu\n", perm_idx, permutation);)
-    //         nsb_permutations[nsb][perm_idx++] = permutation;
-    //     } while(next_permutation_bitwise(&permutation, block_size));
-    //     D(printf("all permutations loaded for nsb = %llu\n", nsb);)
-    //     // nsb_data pointers
-    //     init_nsb_data(&nsb_datas[nsb], num_blocks);
-    //     printf("test done...");
-    // )
 
 
     if(argc < 3) {
@@ -110,17 +91,31 @@ int main (int argc, char const *argv[]) {
 
 
     // TODO: make this static? (just define huge arrays (without calculations))
-    // 0. fill memory with permutations for each nsb (TODO: this could be done dynamically so unneeded nsb's are not computed)
+    // TODO: this could be done dynamically so unneeded nsb's are not computed
+    // 0. fill memory with permutations for each nsb,
     //    also initialize all the pointers of struct nsb_data
+
+    // allocated memory for 1st array dimension
+    nsb_permutations = (number **) calloc(MAX_NSB, sizeof(number *));
+    D(printf("allocating %lu bytes\n", sizeof(number *) * MAX_NSB);)
+
     for(nsb = 0; nsb < MAX_NSB; ++nsb) {
-        // D(printf("nsb = %llu, block_size = %llu...\n", nsb, block_size);)
+        binomCoeff = binom(MAX_NSB - 1, nsb);
+        // D(printf("%d over %llu = %llu\n", MAX_NSB - 1, nsb, binomCoeff);)
+
+        // allocate needed memory
+        nsb_permutation = (number *) calloc(binomCoeff, sizeof(number));
+        // D(printf("allocating %llu bytes\n", sizeof(number *) * binomCoeff);)
+        nsb_permutations[nsb] = nsb_permutation; // or (*nsb_permutations + nsb)
+
         // permutations
         permutation = (1 << nsb) - 1; // 2^nsb - 1 = nsb many 1s (= the first permutation for that many set bits)
         perm_idx = 0;
         do {
             // D(printf("current perm_idx = %llu, current permutation = %llu\n", perm_idx, permutation);)
-            nsb_permutations[nsb][perm_idx++] = permutation;
+            nsb_permutation[perm_idx++] = permutation;
         } while(next_permutation_bitwise(&permutation, block_size));
+        // D(printf("nsb = %llu, permIdx = %llu\n\n", nsb, perm_idx);)
         // D(printf("all permutations loaded for nsb = %llu\n", nsb);)
         // nsb_data pointers
         init_nsb_data(&nsb_datas[nsb], num_blocks);
@@ -128,50 +123,53 @@ int main (int argc, char const *argv[]) {
 
     ////////////////////////////////////////////////////////////////////////////////
     // 1. READ ENTIRE FILE AND GATHER DATA NEEDED FOR COMPRESSION
-    buffer = calloc(block_size / 8 + 1, sizeof(char));
 
-    // set array 'nsb_arrays_lengths' to zeros
-    memset(nsb_arrays_lengths, 0, MAX_NSB * sizeof(number));
-    block_index = 0;
+    read_data(input_file, nsb_datas, block_size, num_blocks, MAX_NSB, &nsb_order, nsb_arrays_lengths, nsb_permutations);
 
-    nsb_order = calloc(num_blocks, sizeof(number));
-
-    // read file til its end (-> feof = end of file)
-    while(!feof(input_file))    {
-        // D(printf("beginning of read loop\n");)
-
-        // read next (block_size / 8) bytes (+1 because '\0' is also appended)
-        // fgets(buffer, block_size / 8 + 1, input_file);
-        fread(buffer, block_size / 8, 1, input_file);
-
-        // D(printf("buffer: %s (%lu)\n", buffer, strlen(buffer));)
-        D(printf("buffer: %x,%x (%lu bytes)\n", (unsigned short) *buffer, (unsigned short) buffer[1], block_size / 8);)
-
-        block = (number *) buffer;
-        // D(printf("%d\n", *block);)
-
-        current_nsb = (number) number_of_set_bits(*block); // TODO: for now, only works for 32 bit integers
-
-        // D(printf("current nsb = %llu in %llu = %s\n", current_nsb, *((number *) buffer), bits_to_string(buffer, block_size));)
-        // D(printf("current nsb = %llu @ %llu\n", current_nsb, block_index);)
-
-        current_nsb_data = nsb_datas[current_nsb];
-
-        current_nsb_data.indices[nsb_arrays_lengths[current_nsb]] = block_index;
-
-        // keep track of the order of blocks in our data structure
-        nsb_order[block_index] = current_nsb;
-
-        // get permutation index of current block
-        perm_idx = 0;
-        while(nsb_permutations[current_nsb][perm_idx++] != *block) {}
-
-        current_nsb_data.perm_indices[nsb_arrays_lengths[current_nsb]] = perm_idx;
-
-        // diffs can be calculated after the average has been determined (after the whole file has been read!)
-        nsb_arrays_lengths[current_nsb]++; // an element was pushed
-        block_index++; // block done
-    }
+    // buffer = calloc(block_size / 8 + 1, sizeof(char));
+    //
+    // // set array 'nsb_arrays_lengths' to zeros
+    // memset(nsb_arrays_lengths, 0, MAX_NSB * sizeof(number));
+    // block_index = 0;
+    //
+    // nsb_order = calloc(num_blocks, sizeof(number));
+    //
+    // // read file til its end (-> feof = end of file)
+    // while(!feof(input_file))    {
+    //     // D(printf("beginning of read loop\n");)
+    //
+    //     // read next (block_size / 8) bytes (+1 because '\0' is also appended)
+    //     // fgets(buffer, block_size / 8 + 1, input_file);
+    //     fread(buffer, block_size / 8, 1, input_file);
+    //
+    //     // D(printf("buffer: %s (%lu)\n", buffer, strlen(buffer));)
+    //     D(printf("buffer: %x,%x (%lu bytes)\n", (unsigned short) *buffer, (unsigned short) buffer[1], block_size / 8);)
+    //
+    //     block = (number *) buffer;
+    //     // D(printf("%d\n", *block);)
+    //
+    //     current_nsb = (number) number_of_set_bits(*block); // TODO: for now, only works for 32 bit integers
+    //
+    //     // D(printf("current nsb = %llu in %llu = %s\n", current_nsb, *((number *) buffer), bits_to_string(buffer, block_size));)
+    //     // D(printf("current nsb = %llu @ %llu\n", current_nsb, block_index);)
+    //
+    //     current_nsb_data = nsb_datas[current_nsb];
+    //
+    //     current_nsb_data.indices[nsb_arrays_lengths[current_nsb]] = block_index;
+    //
+    //     // keep track of the order of blocks in our data structure
+    //     nsb_order[block_index] = current_nsb;
+    //
+    //     // get permutation index of current block
+    //     perm_idx = 0;
+    //     while(nsb_permutations[current_nsb][perm_idx++] != *block) {}
+    //
+    //     current_nsb_data.perm_indices[nsb_arrays_lengths[current_nsb]] = perm_idx;
+    //
+    //     // diffs can be calculated after the average has been determined (after the whole file has been read!)
+    //     nsb_arrays_lengths[current_nsb]++; // an element was pushed
+    //     block_index++; // block done
+    // }
     fclose(input_file);
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -365,7 +363,7 @@ int main (int argc, char const *argv[]) {
 
     number *p = result.bits;
     D(printf("Printing blocks:\n");)
-    D(printf("1st block = %llu, last_block = %llu\n", result.bits, result.last_block);)
+    D(printf("1st block = %p, last_block = %p\n", result.bits, result.last_block);)
     D(printf(">>> %llu\n", *p);)
     while(p != result.last_block) {
         D(printf(">>> %llu\n", *(++p));)
