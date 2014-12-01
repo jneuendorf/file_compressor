@@ -167,8 +167,14 @@ void write_data_to_bit_stream(struct bit_stream *bit_stream, struct nsb_data *ns
 
     max_nsb_bits = NEEDED_BITS(settings.max_nsb);
 
+    // TODO: also save the block size (since 64 is the max and it's dividable by 8 that would only take 3 more bits)
+    // TODO: from 000 (=0) to 111 (=7) and then +1 because 0 is not allowed
+    *bit_stream = create_bs(settings.block_size / 8 - 1, 3);
+
+
     // create/prepare result bit_stream with number of mapper entries
-    *bit_stream = create_bs(num_mapper_entries, max_nsb_bits);
+    // *bit_stream = create_bs(num_mapper_entries, max_nsb_bits);
+    append_num_to_bs(bit_stream, &num_mapper_entries, max_nsb_bits);
 
     D(printf("appending num_mapper_entries = %llu (%llu bits)\n", num_mapper_entries, max_nsb_bits);)
 
