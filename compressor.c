@@ -1,8 +1,4 @@
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "global.h"
 #include "permutation.h"
 #include "compressor.h"
 
@@ -10,6 +6,7 @@
 
 void init_nsb_data(struct nsb_data *nsb_data, number num_blocks) {
     // TODO: arrays might be way too big! init them with the expected size of num_blocks / (block_size + 1)
+    // because right now we create (MAX_NSB * num_blocks) array elements
     nsb_data->indices = calloc(num_blocks, sizeof(number));
     nsb_data->perm_indices = calloc(num_blocks, sizeof(number));
     nsb_data->diffs = calloc(num_blocks, sizeof(signed_number));
@@ -233,9 +230,8 @@ unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_
 // deallocate with realloc(ptr, 0)
 
 
-
 number get_bs_size(struct bit_stream *bit_stream) {
-    return (bit_stream->num_blocks - 1) * sizeof(number) + sizeof(number) * 8 - bit_stream->avail_bits;
+    return bit_stream->num_blocks * sizeof(number) * 8 - bit_stream->avail_bits;
 }
 
 

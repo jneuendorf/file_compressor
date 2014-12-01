@@ -15,12 +15,12 @@
 #ifndef MAX_NSB
 #define MAX_NSB (BLOCK_SIZE + 1)
 #endif
-#ifndef MAX_PERM_IDX
-// #define MAX_PERM_IDX 70
-#define MAX_PERM_IDX 12870 // binom(16 8)
+#ifndef MAX_POSSIBLE_PERM_IDX
+// #define MAX_POSSIBLE_PERM_IDX 70
+#define MAX_POSSIBLE_PERM_IDX 12870 // binom(16 8)
 #endif
 #ifndef MAX_AVG_IDX
-#define MAX_AVG_IDX (MAX_PERM_IDX / 2)
+#define MAX_AVG_IDX (MAX_POSSIBLE_PERM_IDX / 2)
 #endif
 
 

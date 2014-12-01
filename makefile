@@ -2,9 +2,8 @@ OBJS = global.o permutation.o compress.o decompress.o compressor.o main.o
 CC = gcc
 CPPC = g++
 
-CFLAGS = -Wall -c
-LFLAGS = -Wall
-PFLAGS = -Wall -O3
+CFLAGS = -Wall -c -O3
+LFLAGS = -Wall -O3
 EXE_NAME = compressor
 
 
@@ -40,9 +39,6 @@ main.o: main.c
 permute_test: permutation_test.cpp
 	$(CPPC) $(LFLAGS) permutation_test.cpp -o permute_test
 	./permute_test
-
-production: $(OBJS)
-	$(CC) $(PFLAGS) $(OBJS) -o $(EXE_NAME)
 
 
 run: compressor

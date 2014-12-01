@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DEBUG
 
+#define DEBUG
 
 #ifdef DEBUG
 #define D(x) x
@@ -22,6 +22,7 @@
 typedef unsigned char byte;
 typedef unsigned long long number;
 typedef signed long long signed_number;
+
 
 // this is save because it's static inline
 static inline bool is_big_endian() {

@@ -1,8 +1,6 @@
 #include <stddef.h>
-#include <stdio.h>
 
 #include "global.h"
-
 
 
 /* bitwise permutation of a number
