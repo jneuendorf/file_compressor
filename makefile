@@ -13,9 +13,6 @@ compressor: $(OBJS)
 
 
 # OBJECTS
-# permute.o: permute.cpp
-# 	$(CPPC) $(CFLAGS) permute.cpp
-
 global.o: global.c global.h
 	$(CC) $(CFLAGS) global.c
 
