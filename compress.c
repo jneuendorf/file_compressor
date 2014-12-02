@@ -1,7 +1,7 @@
 #include "compress.h"
 
 
-void read_data(FILE *file, struct nsb_data *nsb_datas, number num_blocks, number **nsb_order_p, number *nsb_arrays_lengths, number **nsb_permutations) {
+void read_uncompressed_data(FILE *file, struct nsb_data *nsb_datas, number num_blocks, number **nsb_order_p, number *nsb_arrays_lengths, number **nsb_permutations) {
     char            *buffer;
     number          block_index;
     number          current_nsb;
@@ -19,6 +19,8 @@ void read_data(FILE *file, struct nsb_data *nsb_datas, number num_blocks, number
     nsb_order = calloc(num_blocks, sizeof(number));
     // point to allocated memory
     *nsb_order_p = nsb_order;
+
+    // TODO: read file block-wise (see settings) and iterate over bytes (like below)
 
     // read file til its end (-> feof = end of file)
     while(!feof(file)) {
@@ -261,10 +263,10 @@ bool write_data_to_file(char const filename[], struct bit_stream *bit_stream) {
     file = fopen(filename, "wb");
     if(file == NULL)  {
         D(printf("Error: Can't open '%s' for write!\n", filename);)
-        return 1;
+        return false;
     }
     fwrite(output, sizeof(unsigned char), written_bytes, file);
 
     fclose(file);
-    return 0;
+    return true;
 }

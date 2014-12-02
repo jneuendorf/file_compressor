@@ -5,6 +5,8 @@
 #include "compressor.h"
 
 
+bool read_compressed_data(char const filename[], struct bit_stream *bit_stream);
+
 
 
 #endif

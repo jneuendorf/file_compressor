@@ -29,6 +29,7 @@ struct settings {
     number max_avg_idx;
     unsigned char block_size;
     unsigned char max_nsb;
+    unsigned int memory_block_size; // how many to read into buffer for big files in mega bytes
 };
 
 struct settings settings;

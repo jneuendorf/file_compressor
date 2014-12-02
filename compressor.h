@@ -31,6 +31,9 @@ struct bit_stream {
     number num_blocks; // array length
     number *last_block; // points to the current (last used) element of the array
     unsigned char avail_bits; // available bits
+    // data for reading the bs:
+    number *r_block;
+    number r_bit_idx;
 };
 
 
@@ -38,6 +41,7 @@ struct bit_stream {
 // SIGNATURES
 void init_nsb_data(struct nsb_data *nsb_data, number block_size);
 number binom(unsigned char n, unsigned char k);
+number get_file_size(FILE *file);
 
 // BIT OPERATIONS
 unsigned int number_of_set_bits(int i);

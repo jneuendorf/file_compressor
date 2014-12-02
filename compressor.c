@@ -35,6 +35,17 @@ number binom(unsigned char n, unsigned char k) {
 }
 
 
+number get_file_size(FILE *file) {
+    number file_size;
+    fseek(file, 0L, SEEK_END);
+    // get file size in bytes
+    file_size = ftell(file);
+    // seek back to the beginning
+    fseek(file, 0L, SEEK_SET);
+    return file_size;
+}
+
+
 
 // from http://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer
 unsigned int number_of_set_bits(int i) {
@@ -99,7 +110,14 @@ struct bit_stream create_bs(number n, unsigned char used_bits) {
     n = n << (max_bits - used_bits);
     bits = (number *) calloc(1, sizeof(number));
     *bits = n;
-    struct bit_stream result = { .bits = bits, .num_blocks = 1, .last_block = bits, .avail_bits = max_bits - used_bits};
+    struct bit_stream result = {
+        .bits = bits,
+        .num_blocks = 1,
+        .last_block = bits,
+        .avail_bits = max_bits - used_bits,
+        .r_block = bits,
+        .r_bit_idx = 0
+    };
     return result;
 }
 
@@ -229,11 +247,26 @@ unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_
 
 // deallocate with realloc(ptr, 0)
 
-
 number get_bs_size(struct bit_stream *bit_stream) {
     return bit_stream->num_blocks * sizeof(number) * 8 - bit_stream->avail_bits;
 }
 
+number read_bs(struct bit_stream *bit_stream, unsigned char num_bits) {
+    number result;
+
+    result = 0;
+
+    // read as long as we want to read more and we're not passed the end
+    while(num_bits > 0 && bit_stream->r_block != bit_stream->last_block) {
+
+
+
+        // go to next block
+        (bit_stream->r_block)++;
+    }
+
+    return result;
+}
 
 // http://graphics.stanford.edu/~seander/bithacks.html#SwappingBitsXOR
 // Swapping individual bits with XOR

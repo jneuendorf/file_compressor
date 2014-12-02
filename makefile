@@ -41,8 +41,11 @@ permute_test: permutation_test.cpp
 run: compressor
 	./$(EXE_NAME)
 
-test: compressor
-	./$(EXE_NAME) tobecompressed.txt compressed.c13
+test_compress: compressor
+	./$(EXE_NAME) tobecompressed.txt compressed.c13 -v
+
+test_decompress: compressor
+	./$(EXE_NAME) compressed2.c13 tobecompressed2.txt -v --decompress
 
 test_debug:$(OBJS)
 	$(CC) $(LFLAGS) $(OBJS) -g -o $(EXE_NAME)
@@ -51,8 +54,8 @@ test_debug:$(OBJS)
 clean:
 	-@rm *.o 2> /dev/null
 	-@rm $(EXE_NAME) 2> /dev/null
-	-@rm a.out 2> /dev/null
-	-@rm *.gch 2> /dev/null
+	# -@rm a.out 2> /dev/null
+	# -@rm *.gch 2> /dev/null
 
 tar:
 	tar cfv $(EXE_NAME).tar $(OBJS)

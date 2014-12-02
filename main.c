@@ -21,7 +21,7 @@ int main (int argc, char const *argv[]) {
     number              num_blocks;
     number              perm_idx;
     number              permutation;
-    struct bit_stream   result;
+    struct bit_stream   bit_stream;
     struct nsb_data     *nsb_datas;
     unsigned char       block_size;
 
@@ -37,6 +37,7 @@ int main (int argc, char const *argv[]) {
     settings.compress = true;
     settings.verbose = false;
     settings.block_size = 16;
+    settings.memory_block_size = 256;
     // get command line arguments
     if(argc > 3) {
         for(unsigned char i = 3; i < argc; ++i) {
@@ -53,6 +54,13 @@ int main (int argc, char const *argv[]) {
                     settings.block_size = block_size;
                 }
             }
+            else if(strcmp("-m", argv[i]) == 0) {
+                block_size = strtol(argv[++i], NULL, 10);
+                // set only if valid
+                if(block_size != 0) {
+                    settings.memory_block_size = block_size;
+                }
+            }
         }
     }
     // set greatest possible NSB (block_size + 1 because from 0 to block_size)
@@ -61,8 +69,14 @@ int main (int argc, char const *argv[]) {
     settings.max_perm_idx = binom(settings.block_size, settings.block_size / 2);
     // set greatest possible average permutation index (half of max. permutation index)
     settings.max_avg_idx = settings.max_perm_idx / 2;
+    // convert memory_block_size from mega bytes to bytes
+    settings.memory_block_size *= 1048576;
+
     D(printf("settings: verbose = %d, compress = %d, block_size = %u\n", settings.verbose, settings.compress, settings.block_size);)
 
+
+
+    // COMPRESSION
     if(settings.compress) {
         // try to open the file
         input_file = fopen(argv[1], "rb");
@@ -71,13 +85,7 @@ int main (int argc, char const *argv[]) {
             return 1;
         }
 
-        // TODO: show progress
-        // set file position to the end
-        fseek(input_file, 0L, SEEK_END);
-        // get file size in bytes
-        file_size = ftell(input_file);
-        // seek back to the beginning
-        fseek(input_file, 0L, SEEK_SET);
+        file_size = get_file_size(input_file);
 
         num_blocks = CEIL_X_DIV_Y(file_size, (settings.block_size / 8));
 
@@ -128,7 +136,7 @@ int main (int argc, char const *argv[]) {
             printf("reading %s...\n", argv[1]);
         }
 
-        read_data(input_file, nsb_datas, num_blocks, &nsb_order, nsb_arrays_lengths, nsb_permutations);
+        read_uncompressed_data(input_file, nsb_datas, num_blocks, &nsb_order, nsb_arrays_lengths, nsb_permutations);
         fclose(input_file);
 
         if(settings.verbose) {
@@ -188,21 +196,21 @@ int main (int argc, char const *argv[]) {
             printf("creating bit stream that'l be written...\n");
         }
 
-        write_data_to_bit_stream(&result, nsb_datas, num_blocks, max_used_nsb, nsb_order, nsb_arrays_lengths, nsb_offsets);
+        write_data_to_bit_stream(&bit_stream, nsb_datas, num_blocks, max_used_nsb, nsb_order, nsb_arrays_lengths, nsb_offsets);
 
         if(settings.verbose) {
             printf("bit stream is ready...\n");
         }
 
-        number *p = result.bits;
+        number *p = bit_stream.bits;
         D(printf("Printing blocks:\n");)
-        D(printf("1st block = %p, last_block = %p\n", result.bits, result.last_block);)
+        D(printf("1st block = %p, last_block = %p\n", bit_stream.bits, bit_stream.last_block);)
         D(printf(">>> %llu\n", *p);)
-        while(p != result.last_block) {
+        while(p != bit_stream.last_block) {
             D(printf(">>> %llu\n", *(++p));)
-            // D(printf(">>> %llu < %llu\n", p, result.last_block);)
+            // D(printf(">>> %llu < %llu\n", p, bit_stream.last_block);)
         }
-        D(printf("last block available = %d\n", result.avail_bits);)
+        D(printf("last block available = %d\n", bit_stream.avail_bits);)
 
 
         ////////////////////////////////////////////////////////////////////////////////
@@ -211,11 +219,15 @@ int main (int argc, char const *argv[]) {
             printf("writing bit stream to %s...\n", argv[2]);
         }
 
-        write_data_to_file(argv[2], &result);
+        write_data_to_file(argv[2], &bit_stream);
 
         if(settings.verbose) {
             printf("DONE!\n");
         }
+    }
+    // DECOMPRESSION
+    else {
+        read_compressed_data_to_bit_stream(argv[1], &bit_stream);
     }
 
 
