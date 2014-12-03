@@ -33,7 +33,7 @@ struct bit_stream {
     unsigned char avail_bits; // available bits
     // data for reading the bs:
     number *r_block;
-    number r_bit_idx;
+    unsigned char r_bit_idx;
 };
 
 

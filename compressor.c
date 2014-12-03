@@ -253,17 +253,36 @@ number get_bs_size(struct bit_stream *bit_stream) {
 
 number read_bs(struct bit_stream *bit_stream, unsigned char num_bits) {
     number result;
+    unsigned char max_r_bit_idx;
+    unsigned char bits_in_block; // number of bits we can stil read in current block
+
+    if(num_bits == 0) {
+        return 0;
+    }
 
     result = 0;
+    max_r_bit_idx = sizeof(number) * 8 - 1; // -1 because we start counting at 0
 
     // read as long as we want to read more and we're not passed the end
-    while(num_bits > 0 && bit_stream->r_block != bit_stream->last_block) {
+    do {
+        if(bit_stream->r_block != bit_stream->last_block) {
+            bits_in_block = max_r_bit_idx - bit_stream->r_bit_idx;
+        }
+        // last block => check available bits
+        else {
+            bits_in_block = max_r_bit_idx - bit_stream->r_bit_idx - bit_stream->avail_bits;
+        }
 
+        // got more bits left than we want to read
+        if(bits_in_block > num_bits) {
+            // increase bit index (in reading meta data)
+            bit_stream->r_bit_idx += num_bits;
+        }
 
 
         // go to next block
         (bit_stream->r_block)++;
-    }
+    } while(num_bits > 0 && bit_stream->r_block != bit_stream->last_block);
 
     return result;
 }

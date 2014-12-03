@@ -227,7 +227,19 @@ int main (int argc, char const *argv[]) {
     }
     // DECOMPRESSION
     else {
-        read_compressed_data_to_bit_stream(argv[1], &bit_stream);
+        // read data from compressed file to bit stream (block-wise)
+        read_compressed_data(argv[1], &bit_stream);
+
+        number *p = bit_stream.bits;
+        D(printf("Printing blocks:\n");)
+        D(printf("1st block = %p, last_block = %p\n", bit_stream.bits, bit_stream.last_block);)
+        D(printf(">>> %llu\n", *p);)
+        while(p != bit_stream.last_block) {
+            D(printf(">>> %llu\n", *(++p));)
+            // D(printf(">>> %llu < %llu\n", p, bit_stream.last_block);)
+        }
+        D(printf("last block available = %d\n", bit_stream.avail_bits);)
+
     }
 
 
