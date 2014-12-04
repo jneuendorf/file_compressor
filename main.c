@@ -188,34 +188,29 @@ int main (int argc, char const *argv[]) {
     }
     // DECOMPRESSION
     else {
-        // little read_bs() test
-        unsigned char read_error = 0;
-        // 16450297403121329451 = 11100100010010 110011001001010100101010 10100100111110010100101011
-        number n = 16450297403121329451UL;
-        // 2356 = 100100110100
-        number m = 2356UL;
-        number read = 0;
-        struct bit_stream test = create_bs(n, 64);
-        append_num_to_bs(&test, &m, 12);
-
-        read = read_bs(&test, 14, &read_error);
-        D(printf("1. read block = %llu (%u)\n", read, read_error);)
-        // expected 11100100010010 = 14610
-
-        read = read_bs(&test, 24, &read_error);
-        D(printf("2. read block = %llu (%u)\n", read, read_error);)
-        // expected 110011001001010100101010 = 13407530
-
-        read = read_bs(&test, 39, &read_error);
-        D(printf("3. read block = %llu (%u)\n", read, read_error);)
-        // expected 10100100111110010100101011100100110100 = 177139267892
-
-        // read = read_bs(&test, 12, &read_error);
-        // D(printf("4. read block = %llu (%u)\n", read, read_error);)
-        // // expected 100100110100 = 2356
-
-
-        return 0;
+        // // little read_bs() test
+        // unsigned char read_error = 0;
+        // // 16450297403121329451 = 11100100010010 110011001001010100101010 10100100111110010100101011
+        // number n = 16450297403121329451UL;
+        // // 2356 = 100100110100
+        // number m = 2356UL;
+        // number read = 0;
+        // struct bit_stream test = create_bs(n, 64);
+        // append_num_to_bs(&test, &m, 12);
+        //
+        // read = read_bs(&test, 14, &read_error);
+        // D(printf("1. read block = %llu (%u)\n", read, read_error);)
+        // // expected 11100100010010 = 14610
+        //
+        // read = read_bs(&test, 24, &read_error);
+        // D(printf("2. read block = %llu (%u)\n", read, read_error);)
+        // // expected 110011001001010100101010 = 13407530
+        //
+        // read = read_bs(&test, 38, &read_error);
+        // D(printf("3. read block = %llu (%u)\n", read, read_error);)
+        // // expected 10100100111110010100101011100100110100 = 177139267892
+        // 
+        // return 0;
 
         // read data from compressed file to bit stream (block-wise)
         read_compressed_data(argv[1], &bit_stream);

@@ -53,5 +53,6 @@ void append_num_to_bs(struct bit_stream *bit_stream, number *block, unsigned cha
 unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_bytes);
 number get_bs_size(struct bit_stream *bit_stream);
 number read_bs(struct bit_stream *bit_stream, unsigned char num_bits, unsigned char *error);
+void reset_read_cursor(struct bit_stream *bit_stream);
 
 #endif

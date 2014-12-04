@@ -270,7 +270,7 @@ number read_bs(struct bit_stream *bit_stream, unsigned char num_bits, unsigned c
         return 0UL;
     }
 
-    D(printf("bits_in_block = %u\n", bits_in_block);)
+    // D(printf("bits_in_block = %u\n", bits_in_block);)
 
     // got enough bits to read
     if(bits_in_block >= num_bits) {
@@ -284,7 +284,7 @@ number read_bs(struct bit_stream *bit_stream, unsigned char num_bits, unsigned c
         if(bit_stream->r_bit_idx == max_bits && bit_stream->r_block != bit_stream->last_block) {
             (bit_stream->r_block)++;
             bit_stream->r_bit_idx = 0;
-            printf("read till the end...\n");
+            // printf("read till the end...\n");
         }
     }
     // need to read some bits from current block and some from the next
@@ -316,6 +316,11 @@ number read_bs(struct bit_stream *bit_stream, unsigned char num_bits, unsigned c
     }
 
     return result;
+}
+
+void reset_read_cursor(struct bit_stream *bit_stream) {
+    bit_stream->r_bit_idx = 0;
+    bit_stream->r_block = bit_stream->bits;
 }
 
 // http://graphics.stanford.edu/~seander/bithacks.html#SwappingBitsXOR
