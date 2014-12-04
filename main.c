@@ -23,7 +23,7 @@ int main (int argc, char const *argv[]) {
     number              permutation;
     struct bit_stream   bit_stream;
     struct nsb_data     *nsb_datas;
-    unsigned char       block_size;
+
 
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -33,47 +33,8 @@ int main (int argc, char const *argv[]) {
         return 1;
     }
 
-    // init options
-    settings.compress = true;
-    settings.verbose = false;
-    settings.block_size = 16;
-    settings.memory_block_size = 256;
-    // get command line arguments
-    if(argc > 3) {
-        for(unsigned char i = 3; i < argc; ++i) {
-            if(strcmp("-v", argv[i]) == 0 || strcmp("-v", argv[i]) == 0) {
-                settings.verbose = true;
-            }
-            else if(strcmp("--decompress", argv[i]) == 0) {
-                settings.compress = false;
-            }
-            else if(strcmp("-b", argv[i]) == 0) {
-                block_size = strtol(argv[++i], NULL, 10);
-                // set only if valid
-                if(block_size >= 8 && block_size <= 64 && block_size % 8 == 0) {
-                    settings.block_size = block_size;
-                }
-            }
-            else if(strcmp("-m", argv[i]) == 0) {
-                block_size = strtol(argv[++i], NULL, 10);
-                // set only if valid
-                if(block_size != 0) {
-                    settings.memory_block_size = block_size;
-                }
-            }
-        }
-    }
-    // set greatest possible NSB (block_size + 1 because from 0 to block_size)
-    settings.max_nsb = settings.block_size + 1;
-    // set greatest possible permutation index
-    settings.max_perm_idx = binom(settings.block_size, settings.block_size / 2);
-    // set greatest possible average permutation index (half of max. permutation index)
-    settings.max_avg_idx = settings.max_perm_idx / 2;
-    // convert memory_block_size from mega bytes to bytes
-    settings.memory_block_size *= 1048576;
-
-    D(printf("settings: verbose = %d, compress = %d, block_size = %u\n", settings.verbose, settings.compress, settings.block_size);)
-
+    // init options from command line arguments
+    parse_cmd_line_arguments(argc, argv, &settings);
 
 
     // COMPRESSION
@@ -227,6 +188,35 @@ int main (int argc, char const *argv[]) {
     }
     // DECOMPRESSION
     else {
+        // little read_bs() test
+        unsigned char read_error = 0;
+        // 16450297403121329451 = 11100100010010 110011001001010100101010 10100100111110010100101011
+        number n = 16450297403121329451UL;
+        // 2356 = 100100110100
+        number m = 2356UL;
+        number read = 0;
+        struct bit_stream test = create_bs(n, 64);
+        append_num_to_bs(&test, &m, 12);
+
+        read = read_bs(&test, 14, &read_error);
+        D(printf("1. read block = %llu (%u)\n", read, read_error);)
+        // expected 11100100010010 = 14610
+
+        read = read_bs(&test, 24, &read_error);
+        D(printf("2. read block = %llu (%u)\n", read, read_error);)
+        // expected 110011001001010100101010 = 13407530
+
+        read = read_bs(&test, 39, &read_error);
+        D(printf("3. read block = %llu (%u)\n", read, read_error);)
+        // expected 10100100111110010100101011100100110100 = 177139267892
+
+        // read = read_bs(&test, 12, &read_error);
+        // D(printf("4. read block = %llu (%u)\n", read, read_error);)
+        // // expected 100100110100 = 2356
+
+
+        return 0;
+
         // read data from compressed file to bit stream (block-wise)
         read_compressed_data(argv[1], &bit_stream);
 

@@ -12,28 +12,6 @@ void init_nsb_data(struct nsb_data *nsb_data, number num_blocks) {
     nsb_data->diffs = calloc(num_blocks, sizeof(signed_number));
 }
 
-// from: http://www.geeksforgeeks.org/space-and-time-efficient-binomial-coefficient/
-// Returns value of Binomial Coefficient C(n, k)
-number binom(unsigned char n, unsigned char k) {
-    number res;
-    unsigned char i;
-
-    res = 1;
-
-    // Since C(n, k) = C(n, n-k)
-    if(k > n - k) {
-        k = n - k;
-    }
-
-    // Calculate value of [n * (n-1) *---* (n-k+1)] / [k * (k-1) *----* 1]
-    for(i = 0; i < k; ++i) {
-        res *= (n - i);
-        res /= (i + 1);
-    }
-
-    return res;
-}
-
 
 number get_file_size(FILE *file) {
     number file_size;
@@ -251,38 +229,91 @@ number get_bs_size(struct bit_stream *bit_stream) {
     return bit_stream->num_blocks * sizeof(number) * 8 - bit_stream->avail_bits;
 }
 
-number read_bs(struct bit_stream *bit_stream, unsigned char num_bits) {
+/*
+* At the most we read from 2 blocks because we return the type number which has 64 bits!
+* If valid pointer is given for error the following error ints are set:
+*   1 - read past end (last block)
+*   2 - read past end (non-last block)
+*   3 - invalid num_bits given
+*/
+number read_bs(struct bit_stream *bit_stream, unsigned char num_bits, unsigned char *error) {
     number result;
-    unsigned char max_r_bit_idx;
     unsigned char bits_in_block; // number of bits we can stil read in current block
+    unsigned char max_bits;
+    unsigned char rem_bits;
 
-    if(num_bits == 0) {
-        return 0;
+    if(num_bits == 0 || num_bits > sizeof(number) * 8) {
+        if(error != NULL) {
+            *error = 3;
+        }
+        return 0UL;
     }
 
     result = 0;
-    max_r_bit_idx = sizeof(number) * 8 - 1; // -1 because we start counting at 0
+    max_bits = sizeof(number) * 8;
 
-    // read as long as we want to read more and we're not passed the end
-    do {
-        if(bit_stream->r_block != bit_stream->last_block) {
-            bits_in_block = max_r_bit_idx - bit_stream->r_bit_idx;
+    // find out how many bits we have left in the current block
+    if(bit_stream->r_block != bit_stream->last_block) {
+        bits_in_block = max_bits - bit_stream->r_bit_idx;
+        // D(printf("in if...\n");)
+    }
+    // last block => check available bits
+    else {
+        bits_in_block = max_bits - bit_stream->r_bit_idx - bit_stream->avail_bits;
+    }
+
+    // we want to read but there are no bits left to read => return
+    if(bits_in_block == 0) {
+        if(error != NULL) {
+            *error = 1;
         }
-        // last block => check available bits
-        else {
-            bits_in_block = max_r_bit_idx - bit_stream->r_bit_idx - bit_stream->avail_bits;
+        return 0UL;
+    }
+
+    D(printf("bits_in_block = %u\n", bits_in_block);)
+
+    // got enough bits to read
+    if(bits_in_block >= num_bits) {
+        // shift current block right until all unwanted (later) bits are gone
+        result = *(bit_stream->r_block) >> (max_bits - bit_stream->r_bit_idx - num_bits);
+        result = result & ((1UL << num_bits) - 1);
+        // increase bit index (in reading meta data)
+        bit_stream->r_bit_idx += num_bits;
+        // check if the read index equals max_bits
+        // if so we've read the entire block => try to go to next block
+        if(bit_stream->r_bit_idx == max_bits && bit_stream->r_block != bit_stream->last_block) {
+            (bit_stream->r_block)++;
+            bit_stream->r_bit_idx = 0;
+            printf("read till the end...\n");
+        }
+    }
+    // need to read some bits from current block and some from the next
+    else {
+        // get bits we want to read from 2nd block
+        rem_bits = num_bits - bits_in_block;
+
+        // we would need to read more from 2nd than there's available
+        if(rem_bits > bits_in_block - bit_stream->avail_bits) {
+            if(error != NULL) {
+                *error = 2;
+            }
+            return 0UL;
         }
 
-        // got more bits left than we want to read
-        if(bits_in_block > num_bits) {
-            // increase bit index (in reading meta data)
-            bit_stream->r_bit_idx += num_bits;
-        }
+        // read from 1st block (till the last bit!)
+        result = *(bit_stream->r_block) & ((1 << bits_in_block) - 1);
+        // shift result left to make space for remaining bits
+        result = result << rem_bits;
 
-
-        // go to next block
+        // go to 2nd block
         (bit_stream->r_block)++;
-    } while(num_bits > 0 && bit_stream->r_block != bit_stream->last_block);
+
+        // read from 2nd block
+        result = result | (*(bit_stream->r_block) >> (max_bits - rem_bits));
+
+        // set bit index (in reading meta data)
+        bit_stream->r_bit_idx = rem_bits;
+    }
 
     return result;
 }

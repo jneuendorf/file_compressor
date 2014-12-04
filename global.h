@@ -41,4 +41,9 @@ static inline bool is_big_endian() {
     return *(const uint8_t *) &endianness;
 }
 
+
+// SIGNATURES
+number binom(unsigned char n, unsigned char k);
+void parse_cmd_line_arguments(int argc, char const *argv[], struct settings *settings);
+
 #endif

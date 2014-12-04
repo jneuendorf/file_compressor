@@ -40,7 +40,7 @@ struct bit_stream {
 
 // SIGNATURES
 void init_nsb_data(struct nsb_data *nsb_data, number block_size);
-number binom(unsigned char n, unsigned char k);
+
 number get_file_size(FILE *file);
 
 // BIT OPERATIONS
@@ -52,5 +52,6 @@ struct bit_stream create_bs(number n, unsigned char used_bits);
 void append_num_to_bs(struct bit_stream *bit_stream, number *block, unsigned char used_bits);
 unsigned char* bs_to_byte_stream(struct bit_stream *bit_stream, number *written_bytes);
 number get_bs_size(struct bit_stream *bit_stream);
+number read_bs(struct bit_stream *bit_stream, unsigned char num_bits, unsigned char *error);
 
 #endif
