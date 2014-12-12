@@ -18,7 +18,6 @@ int main (int argc, char const *argv[]) {
     number              file_size;
     number              max_used_nsb;
     number              nsb; // number of set bits
-    number              num_blocks;
     number              perm_idx;
     number              permutation;
     struct bit_stream   bit_stream;
@@ -36,6 +35,7 @@ int main (int argc, char const *argv[]) {
     // init options from command line arguments
     parse_cmd_line_arguments(argc, argv, &settings);
 
+    D(printf("settings => verbose = %d, compress = %d, block_size = %u\n", settings.verbose, settings.compress, settings.block_size);)
 
     // COMPRESSION
     if(settings.compress) {
@@ -48,25 +48,32 @@ int main (int argc, char const *argv[]) {
 
         file_size = get_file_size(input_file);
 
-        num_blocks = CEIL_X_DIV_Y(file_size, (settings.block_size / 8));
+        // fill compress_data struct
+        compress_data.block_size = settings.block_size;
+        compress_data.num_blocks = CEIL_X_DIV_Y(file_size, (compress_data.block_size / 8));
+        // set greatest possible NSB (block_size + 1 because from 0 to block_size)
+        compress_data.max_nsb = compress_data.block_size + 1;
+        // set greatest possible permutation index
+        compress_data.max_perm_idx = binom(compress_data.block_size, compress_data.block_size / 2);
+        // set greatest possible average permutation index (half of max. permutation index)
+        compress_data.max_avg_idx = compress_data.max_perm_idx / 2;
 
-        D(printf("file_size = %llu bytes, num_blocks = %llu\n", file_size, num_blocks);)
-
+        D(printf("file_size = %llu bytes, num_blocks = %llu\n", file_size, compress_data.num_blocks);)
 
         // allocated memory for dynamic arrays
-        nsb_permutations    = (number **) calloc(settings.max_nsb, sizeof(number *));
-        nsb_arrays_lengths  = (number *)  calloc(settings.max_nsb, sizeof(number));
-        nsb_offsets         = (number *)  calloc(settings.max_nsb, sizeof(number));
-        nsb_datas           = (struct nsb_data *) calloc(settings.max_nsb, sizeof(struct nsb_data));
+        nsb_permutations    = (number **) calloc(compress_data.max_nsb, sizeof(number *));
+        nsb_arrays_lengths  = (number *)  calloc(compress_data.max_nsb, sizeof(number));
+        nsb_offsets         = (number *)  calloc(compress_data.max_nsb, sizeof(number));
+        nsb_datas           = (struct nsb_data *) calloc(compress_data.max_nsb, sizeof(struct nsb_data));
 
 
         // TODO: make this static? (just define huge arrays (without calculations))
         // TODO: this could be done dynamically so unneeded nsb's are not computed
         // 0. fill memory with permutations for each nsb,
         //    also initialize all the pointers of struct nsb_data
-        for(nsb = 0; nsb < settings.max_nsb; ++nsb) {
-            binom_coeff = binom(settings.max_nsb - 1, nsb);
-            // D(printf("%d over %llu = %llu\n", settings.max_nsb - 1, nsb, binom_coeff);)
+        for(nsb = 0; nsb < compress_data.max_nsb; ++nsb) {
+            binom_coeff = binom(compress_data.max_nsb - 1, nsb);
+            // D(printf("%d over %llu = %llu\n", compress_data.max_nsb - 1, nsb, binom_coeff);)
 
             // allocate needed memory
             nsb_permutation = (number *) calloc(binom_coeff, sizeof(number));
@@ -79,16 +86,16 @@ int main (int argc, char const *argv[]) {
             do {
                 // D(printf("current perm_idx = %llu, current permutation = %llu\n", perm_idx, permutation);)
                 nsb_permutation[perm_idx++] = permutation;
-            } while(next_permutation_bitwise(&permutation, settings.block_size));
+            } while(next_permutation_bitwise(&permutation, compress_data.block_size));
             // D(printf("nsb = %llu, permIdx = %llu\n\n", nsb, perm_idx);)
             // D(printf("all permutations loaded for nsb = %llu\n", nsb);)
             // nsb_data pointers
-            init_nsb_data(&nsb_datas[nsb], num_blocks);
+            init_nsb_data(&nsb_datas[nsb]);
         }
 
         if(settings.verbose) {
             printf("all permutations loaded...\n");
-            printf("%llu blocks to compress...\n", num_blocks);
+            printf("%llu blocks to compress...\n", compress_data.num_blocks);
         }
 
         ////////////////////////////////////////////////////////////////////////////////
@@ -97,7 +104,7 @@ int main (int argc, char const *argv[]) {
             printf("reading %s...\n", argv[1]);
         }
 
-        read_uncompressed_data(input_file, nsb_datas, num_blocks, &nsb_order, nsb_arrays_lengths, nsb_permutations);
+        read_uncompressed_data(input_file, nsb_datas, &nsb_order, nsb_arrays_lengths, nsb_permutations);
         fclose(input_file);
 
         if(settings.verbose) {
@@ -157,7 +164,7 @@ int main (int argc, char const *argv[]) {
             printf("creating bit stream that'l be written...\n");
         }
 
-        write_data_to_bit_stream(&bit_stream, nsb_datas, num_blocks, max_used_nsb, nsb_order, nsb_arrays_lengths, nsb_offsets);
+        write_data_to_bit_stream(&bit_stream, nsb_datas, max_used_nsb, nsb_order, nsb_arrays_lengths, nsb_offsets);
 
         if(settings.verbose) {
             printf("bit stream is ready...\n");
@@ -209,24 +216,72 @@ int main (int argc, char const *argv[]) {
         // read = read_bs(&test, 38, &read_error);
         // D(printf("3. read block = %llu (%u)\n", read, read_error);)
         // // expected 10100100111110010100101011100100110100 = 177139267892
-        // 
+        //
         // return 0;
 
         // read data from compressed file to bit stream (block-wise)
         read_compressed_data(argv[1], &bit_stream);
 
+
+
+        D(printf("decompress_data => block_size = %u, max_nsb = %u, num_mapper_entries = %u, max_used_nsb = %u\n", decompress_data.block_size, decompress_data.max_nsb, decompress_data.num_mapper_entries, decompress_data.max_used_nsb);)
+
+
         number *p = bit_stream.bits;
         D(printf("Printing blocks:\n");)
-        D(printf("1st block = %p, last_block = %p\n", bit_stream.bits, bit_stream.last_block);)
+        // D(printf("1st block = %p, last_block = %p\n", bit_stream.bits, bit_stream.last_block);)
         D(printf(">>> %llu\n", *p);)
         while(p != bit_stream.last_block) {
             D(printf(">>> %llu\n", *(++p));)
             // D(printf(">>> %llu < %llu\n", p, bit_stream.last_block);)
         }
         D(printf("last block available = %d\n", bit_stream.avail_bits);)
-
+        // expected: 2467562449949822976 = 001 00010 001111 10100010101111100101111010010110100001000000000000
+        // prints:   2467562449949822976 = 001 0001000111110100010101111100101111010010110100001000000000000
+        // nsb = [7,9,9,1]
     }
 
 
     return 0;
 }
+
+
+
+/*
+compression log from make test_compress:
+
+./compressor tobecompressed.txt compressed.c13 -v
+settings => verbose = 1, compress = 1, block_size = 16
+file_size = 3 bytes, num_blocks = 2
+all permutations loaded...
+2 blocks to compress...
+reading tobecompressed.txt...
+done reading tobecompressed.txt...
+calculating data for compression...
+done calculating data for compression...
+creating bit stream that'l be written...
+appending num_mapper_entries = 2 (5 bits)
+appending max_used_nsb = 7 (5 bits)
+appending nsb = 6 (3 bits)
+appending average = 4447 (13 bits)
+appending max_diff_bits = 2 (4 bits)
+appending nsb = 7 (3 bits)
+appending average = 5300 (13 bits)
+appending max_diff_bits = 2 (4 bits)
+mapper size in bits = 53
+appending diff = 0 (2 bits)
+...was signed? 0
+...original: 0
+appending diff = 0 (2 bits)
+...was signed? 0
+...original: 0
+bit stream is ready...
+Printing blocks:
+1st block = 0x7fd5c3c05c70, last_block = 0x7fd5c3c05c70
+>>> 2467562449949822976
+last block available = 7
+writing bit stream to compressed.c13...
+byte stream has 8 bytes.
+DONE!
+
+*/

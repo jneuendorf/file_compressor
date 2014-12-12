@@ -39,7 +39,7 @@ struct bit_stream {
 
 
 // SIGNATURES
-void init_nsb_data(struct nsb_data *nsb_data, number block_size);
+void init_nsb_data(struct nsb_data *nsb_data);
 
 number get_file_size(FILE *file);
 

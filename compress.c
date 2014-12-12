@@ -1,7 +1,7 @@
 #include "compress.h"
 
 
-void read_uncompressed_data(FILE *file, struct nsb_data *nsb_datas, number num_blocks, number **nsb_order_p, number *nsb_arrays_lengths, number **nsb_permutations) {
+void read_uncompressed_data(FILE *file, struct nsb_data *nsb_datas, number **nsb_order_p, number *nsb_arrays_lengths, number **nsb_permutations) {
     char            *buffer;
     number          block_index;
     number          current_nsb;
@@ -10,30 +10,30 @@ void read_uncompressed_data(FILE *file, struct nsb_data *nsb_datas, number num_b
     number          *block;
     struct nsb_data current_nsb_data;
 
-    buffer = calloc(settings.block_size / 8 + 1, sizeof(char));
+    buffer = calloc(compress_data.block_size / 8 + 1, sizeof(char));
 
     // set array 'nsb_arrays_lengths' to zeros
-    memset(nsb_arrays_lengths, 0, settings.max_nsb * sizeof(number));
+    memset(nsb_arrays_lengths, 0, compress_data.max_nsb * sizeof(number));
     block_index = 0;
 
-    nsb_order = calloc(num_blocks, sizeof(number));
+    nsb_order = calloc(compress_data.num_blocks, sizeof(number));
     // point to allocated memory
     *nsb_order_p = nsb_order;
 
-    // TODO: read file block-wise (see settings) and iterate over bytes (like below)
+    // TODO: read file block-wise (see compress_data) and iterate over bytes (like below)
 
     // read file til its end (-> feof = end of file)
     while(!feof(file)) {
-        fread(buffer, settings.block_size / 8, 1, file);
+        fread(buffer, compress_data.block_size / 8, 1, file);
 
-        // D(printf("buffer: %x,%x (%llu bytes)\n", (unsigned short) *buffer, (unsigned short) buffer[1], settings.block_size / 8);)
+        // D(printf("buffer: %x,%x (%llu bytes)\n", (unsigned short) *buffer, (unsigned short) buffer[1], compress_data.block_size / 8);)
 
         block = (number *) buffer;
         // D(printf("%d\n", *block);)
 
         current_nsb = (number) number_of_set_bits(*block); // TODO: for now, only works for 32 bit integers
 
-        // D(printf("current nsb = %llu in %llu = %s\n", current_nsb, *((number *) buffer), bits_to_string(buffer, settings.block_size));)
+        // D(printf("current nsb = %llu in %llu = %s\n", current_nsb, *((number *) buffer), bits_to_string(buffer, compress_data.block_size));)
         // D(printf("current nsb = %llu @ %llu\n", current_nsb, block_index);)
 
         current_nsb_data = nsb_datas[current_nsb];
@@ -71,7 +71,7 @@ void calc_rem_data(struct nsb_data *nsb_datas, number *max_used_nsb, number *nsb
 
     *max_used_nsb = 0;
     // max_used_avg_idx = 0;
-    for(nsb = 0; nsb < settings.max_nsb; ++nsb) {
+    for(nsb = 0; nsb < compress_data.max_nsb; ++nsb) {
         // cache variables
         nsb_array_length = nsb_arrays_lengths[nsb];
         current_nsb_data = nsb_datas[nsb];
@@ -83,7 +83,7 @@ void calc_rem_data(struct nsb_data *nsb_datas, number *max_used_nsb, number *nsb
             *max_used_nsb = nsb;
 
             // get min and max
-            min_perm_idx = settings.max_perm_idx;
+            min_perm_idx = compress_data.max_perm_idx;
             max_perm_idx = 0;
             for(i = 0; i < nsb_array_length; ++i) {
                 perm_idx = current_nsb_data.perm_indices[i];
@@ -149,7 +149,7 @@ void calc_rem_data(struct nsb_data *nsb_datas, number *max_used_nsb, number *nsb
 }
 
 
-void write_data_to_bit_stream(struct bit_stream *bit_stream, struct nsb_data *nsb_datas, number num_blocks, number max_used_nsb, number *nsb_order, number *nsb_arrays_lengths, number *nsb_offsets) {
+void write_data_to_bit_stream(struct bit_stream *bit_stream, struct nsb_data *nsb_datas, number max_used_nsb, number *nsb_order, number *nsb_arrays_lengths, number *nsb_offsets) {
     number          diff;
     number          i;
     number          max_avg_idx_bits;
@@ -161,17 +161,17 @@ void write_data_to_bit_stream(struct bit_stream *bit_stream, struct nsb_data *ns
 
     // get number of mapper entries (before anything else happens)
     num_mapper_entries = 0;
-    for(nsb = 0; nsb < settings.max_nsb; ++nsb) {
+    for(nsb = 0; nsb < compress_data.max_nsb; ++nsb) {
         if(nsb_arrays_lengths[nsb] > 0) {
             num_mapper_entries++;
         }
     }
 
-    max_nsb_bits = NEEDED_BITS(settings.max_nsb);
+    max_nsb_bits = NEEDED_BITS(compress_data.max_nsb);
 
     // TODO: also save the block size (since 64 is the max and it's dividable by 8 that would only take 3 more bits)
     // TODO: from 000 (=0) to 111 (=7) and then +1 because 0 is not allowed
-    *bit_stream = create_bs(settings.block_size / 8 - 1, 3);
+    *bit_stream = create_bs(compress_data.block_size / 8 - 1, 3);
 
 
     // create/prepare result bit_stream with number of mapper entries
@@ -193,10 +193,10 @@ void write_data_to_bit_stream(struct bit_stream *bit_stream, struct nsb_data *ns
 
     ////////////////////////////////////////////////////////////////////////////////
     // 4. CREATE MAPPER FROM THE DATA WE'VE COLLECTED
-    max_avg_idx_bits = NEEDED_BITS(settings.max_avg_idx);
+    max_avg_idx_bits = NEEDED_BITS(compress_data.max_avg_idx);
 
     // mapper_entry_size = max_used_nsb_bits + 2*max_avg_idx_bits + 1;
-    for(nsb = 0; nsb < settings.max_nsb; ++nsb) {
+    for(nsb = 0; nsb < compress_data.max_nsb; ++nsb) {
         if(nsb_arrays_lengths[nsb] > 0) {
             // write mapper entry:
             // nsb
@@ -220,10 +220,10 @@ void write_data_to_bit_stream(struct bit_stream *bit_stream, struct nsb_data *ns
     ////////////////////////////////////////////////////////////////////////////////
     // CREATE COMPRESSED DATA
     // init nsb_offsets array to 0
-    memset(nsb_offsets, 0, settings.max_nsb * sizeof(number));
+    memset(nsb_offsets, 0, compress_data.max_nsb * sizeof(number));
 
     // go through nsb_order
-    for(i = 0; i < num_blocks; ++i) {
+    for(i = 0; i < compress_data.num_blocks; ++i) {
         nsb = nsb_order[i];
 
         current_nsb_data = nsb_datas[nsb];
@@ -231,7 +231,6 @@ void write_data_to_bit_stream(struct bit_stream *bit_stream, struct nsb_data *ns
 
         append_num_to_bs(bit_stream, (number *) &diff, current_nsb_data.max_diff_bits);
         // append_num_to_bs(bit_stream, (number *) &diff, NEEDED_BITS(current_nsb_data.max_diff));
-
 
         D(printf("appending diff = %lld (%llu bits)\n", diff, current_nsb_data.max_diff_bits);)
         D(printf("...was signed? %lld\n", diff >> (current_nsb_data.max_diff_bits - 1) );)

@@ -25,12 +25,13 @@ number binom(unsigned char n, unsigned char k) {
 
 
 void parse_cmd_line_arguments(int argc, char const *argv[], struct settings *settings) {
-    unsigned char block_size;
+    unsigned char temp;
 
     // default values
     settings->compress = true;
     settings->verbose = false;
     settings->block_size = 16;
+    settings->data_perm_block_size = 16;
     settings->memory_block_size = 256;
 
     // get command line arguments
@@ -43,29 +44,34 @@ void parse_cmd_line_arguments(int argc, char const *argv[], struct settings *set
                 settings->compress = false;
             }
             else if(strcmp("-b", argv[i]) == 0) {
-                block_size = strtol(argv[++i], NULL, 10);
+                temp = strtol(argv[++i], NULL, 10);
                 // set only if valid
-                if(block_size >= 8 && block_size <= 64 && block_size % 8 == 0) {
-                    settings->block_size = block_size;
+                if(temp >= 8 && temp <= 64 && temp % 8 == 0) {
+                    settings->block_size = temp;
+                }
+            }
+            else if(strcmp("-perm", argv[i]) == 0) {
+                temp = strtol(argv[++i], NULL, 10);
+                // set only if valid
+                if(temp >= 8 && temp <= 64 && temp % 8 == 0) {
+                    settings->data_perm_block_size = temp;
                 }
             }
             else if(strcmp("-m", argv[i]) == 0) {
-                block_size = strtol(argv[++i], NULL, 10);
+                temp = strtol(argv[++i], NULL, 10);
                 // set only if valid
-                if(block_size != 0) {
-                    settings->memory_block_size = block_size;
+                if(temp != 0) {
+                    settings->memory_block_size = temp;
                 }
             }
         }
     }
-    // set greatest possible NSB (block_size + 1 because from 0 to block_size)
-    settings->max_nsb = settings->block_size + 1;
-    // set greatest possible permutation index
-    settings->max_perm_idx = binom(settings->block_size, settings->block_size / 2);
-    // set greatest possible average permutation index (half of max. permutation index)
-    settings->max_avg_idx = settings->max_perm_idx / 2;
+    // // set greatest possible NSB (block_size + 1 because from 0 to block_size)
+    // settings->max_nsb = settings->block_size + 1;
+    // // set greatest possible permutation index
+    // settings->max_perm_idx = binom(settings->block_size, settings->block_size / 2);
+    // // set greatest possible average permutation index (half of max. permutation index)
+    // settings->max_avg_idx = settings->max_perm_idx / 2;
     // convert memory_block_size from mega bytes to bytes
     settings->memory_block_size *= 1048576;
-
-    D(printf("settings-> verbose = %d, compress = %d, block_size = %u\n", settings->verbose, settings->compress, settings->block_size);)
 }
