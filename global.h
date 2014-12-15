@@ -26,7 +26,7 @@ struct settings {
     bool verbose;
     bool compress;
     unsigned char block_size;
-    unsigned char data_perm_block_size; // how many (compressed) data blocks to permute
+    unsigned char max_data_perm_block_size; // how many (compressed) data blocks to permute
     unsigned int memory_block_size; // how many to read into buffer for big files in mega bytes
 } settings;
 
@@ -39,8 +39,8 @@ struct compress_data {
 } compress_data;
 
 struct decompress_data {
-    // number max_avg_idx;
-    // number max_perm_idx;
+    number max_avg_idx;
+    number max_perm_idx;
     unsigned char block_size;
     unsigned char max_nsb;
     unsigned char num_mapper_entries;

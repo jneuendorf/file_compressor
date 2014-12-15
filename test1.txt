@@ -1,0 +1,19 @@
+THIS FILE CONTAINS AN EXAMPLE OF COMPRESSION AND CORRESPONDS TO `make compress_test1`.
+
+In this example we have a block size of 8 bits and 2 data-permutation blocks.
+In the 1st data-permutation block all mapper NSBs are contained, in the 2nd they are not.
+
+Here is the data (1. NSB, 2. binary, 3. hex, 4. dec, 5. perm. index):
+
+(1st data-permutation block)
+    5         1         0         3         4         6         8         2         7
+1101 0101 1000 0000 0000 0000 0110 0100 0000 1111 1011 0111 1111 1111 0100 0010 1101 1111
+D5        80        00        64        0F        B7        FF        42        DF
+213       128       0         100       15        183       255       66        223
+14        7         0         32        0         9         0         
+
+(2nd data-permutation block)
+    0         6         2         0         2         0         6         0         2
+0000 0000 1101 1101 1100 0000 0000 0000 0100 0010 0000 0000 1111 0110 0000 0000 0010 0001
+00        DD        C0        00        42        00        F6        00        21
+0         221       192       0         66        0         246       0         33

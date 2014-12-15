@@ -31,7 +31,7 @@ void parse_cmd_line_arguments(int argc, char const *argv[], struct settings *set
     settings->compress = true;
     settings->verbose = false;
     settings->block_size = 16;
-    settings->data_perm_block_size = 16;
+    settings->max_data_perm_block_size = 2 * settings->block_size;
     settings->memory_block_size = 256;
 
     // get command line arguments
@@ -50,11 +50,11 @@ void parse_cmd_line_arguments(int argc, char const *argv[], struct settings *set
                     settings->block_size = temp;
                 }
             }
-            else if(strcmp("-perm", argv[i]) == 0) {
+            else if(strcmp("-maxperm", argv[i]) == 0) {
                 temp = strtol(argv[++i], NULL, 10);
                 // set only if valid
                 if(temp >= 8 && temp <= 64 && temp % 8 == 0) {
-                    settings->data_perm_block_size = temp;
+                    settings->max_data_perm_block_size = temp;
                 }
             }
             else if(strcmp("-m", argv[i]) == 0) {

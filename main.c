@@ -24,6 +24,13 @@ int main (int argc, char const *argv[]) {
     struct nsb_data     *nsb_datas;
 
 
+    // number test = 31; // 1111 1111
+    // do {
+    //     // D(printf("current perm_idx = %llu, current permutation = %llu\n", perm_idx, permutation);)
+    //     printf("%s\n", bits_to_string(&test, 8));
+    // } while(next_permutation_bitwise(&test, 8));
+    // return 0;
+
 
     ////////////////////////////////////////////////////////////////////////////////
     // COMMAND LINE ARGUMENTS
@@ -163,6 +170,11 @@ int main (int argc, char const *argv[]) {
         if(settings.verbose) {
             printf("creating bit stream that'l be written...\n");
         }
+
+        // TODO: before writing data to bit stream permute blocks of compressed data (see globa.h@max_data_perm_block_size)
+        // TODO: try to get 1 block of each NSB...if not prepend NSBs that are not in the compressed data blocks (like an ignore list)
+        // TODO: otherwise use 1 bit for indicating whether to take the same NSB for the next block or the next NSB in the mapper
+        // TODO: (after the whole block is done - restart)
 
         write_data_to_bit_stream(&bit_stream, nsb_datas, max_used_nsb, nsb_order, nsb_arrays_lengths, nsb_offsets);
 

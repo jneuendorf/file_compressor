@@ -12,6 +12,7 @@ bool read_compressed_data(char const filename[], struct bit_stream *bit_stream) 
     number i;
     number max_nsb_bits;
     number memory_block_size;
+    number nsb;
     number temp;
     unsigned char *block_buffer;
     unsigned char *p;
@@ -101,23 +102,24 @@ bool read_compressed_data(char const filename[], struct bit_stream *bit_stream) 
             // read mapper
 
             // mapper_entry_size = max_used_nsb_bits + 2*max_avg_idx_bits + 1;
-            for(nsb = 0; nsb < compress_data.max_nsb; ++nsb) {
-                if(nsb_arrays_lengths[nsb] > 0) {
-                    // write mapper entry:
-                    // nsb
-                    append_num_to_bs(bit_stream, &nsb, max_used_nsb_bits);
-                    D(printf("appending nsb = %llu (%llu bits)\n", nsb, max_used_nsb_bits);)
-
-                    // average
-                    append_num_to_bs(bit_stream, &nsb_datas[nsb].avg, max_avg_idx_bits);
-                    D(printf("appending average = %llu (%llu bits)\n", nsb_datas[nsb].avg, max_avg_idx_bits);)
-
-                    // max_diff_bits
-                    // D(printf("appending max_diff = %llu (%llu bits)\n", nsb_datas[nsb].max_diff, max_avg_idx_bits);)
-                    append_num_to_bs(bit_stream, &nsb_datas[nsb].max_diff_bits, NEEDED_BITS(max_avg_idx_bits));
-                    D(printf("appending max_diff_bits = %llu (%llu bits)\n", nsb_datas[nsb].max_diff_bits, (number) NEEDED_BITS(max_avg_idx_bits));)
-                }
-            }
+            
+            // for(nsb = 0; nsb < compress_data.max_nsb; ++nsb) {
+            //     if(nsb_arrays_lengths[nsb] > 0) {
+            //         // write mapper entry:
+            //         // nsb
+            //         append_num_to_bs(bit_stream, &nsb, max_used_nsb_bits);
+            //         D(printf("appending nsb = %llu (%llu bits)\n", nsb, max_used_nsb_bits);)
+            //
+            //         // average
+            //         append_num_to_bs(bit_stream, &nsb_datas[nsb].avg, max_avg_idx_bits);
+            //         D(printf("appending average = %llu (%llu bits)\n", nsb_datas[nsb].avg, max_avg_idx_bits);)
+            //
+            //         // max_diff_bits
+            //         // D(printf("appending max_diff = %llu (%llu bits)\n", nsb_datas[nsb].max_diff, max_avg_idx_bits);)
+            //         append_num_to_bs(bit_stream, &nsb_datas[nsb].max_diff_bits, NEEDED_BITS(max_avg_idx_bits));
+            //         D(printf("appending max_diff_bits = %llu (%llu bits)\n", nsb_datas[nsb].max_diff_bits, (number) NEEDED_BITS(max_avg_idx_bits));)
+            //     }
+            // }
         }
 
         // TODO: how do we know what nsb a compressed data block belongs to?
